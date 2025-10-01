@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated to Soft Pop design system with mint greens and soft blues */
+  --background: oklch(0.98 0.01 120);
+  --foreground: oklch(0.15 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 240);
+  --primary: rgb(0, 0, 0);
+  --primary-foreground: rgb(247, 210, 0);
+  --secondary: oklch(0.95 0.02 140);
+  --secondary-foreground: rgb(11, 139, 231);
+  --muted: oklch(0.96 0.01 140);
+  --muted-foreground: oklch(0.55 0.02 240);
+  --accent: rgb(21, 0, 255);
+  --accent-foreground: oklch(0.98 0.01 120);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 120);
+  --border: oklch(0.92 0.01 140);
+  --input: oklch(0.96 0.01 140);
+  --ring: oklch(0.65 0.15 160);
+  --chart-1: rgb(236, 255, 237);
+  --chart-2: rgb(255, 227, 249);
+  --chart-3: rgb(255, 249, 201);
+  --chart-4: oklch(0.7 0.14 120);
+  --chart-5: oklch(0.6 0.16 40);
+  --radius: 1rem;
+  --sidebar: oklch(0.98 0.01 120);
+  --sidebar-foreground: oklch(0.15 0.02 240);
+  --sidebar-primary: oklch(0.65 0.15 160);
+  --sidebar-primary-foreground: oklch(0.98 0.01 120);
+  --sidebar-accent: oklch(0.95 0.02 140);
+  --sidebar-accent-foreground: oklch(0.25 0.02 240);
+  --sidebar-border: oklch(0.92 0.01 140);
+  --sidebar-ring: oklch(0.65 0.15 160);
+}
+
+.dark {
+  /* Updated dark mode with Master Duel inspired palette - deep blues, navy tones, and golden accents */
+  --background: #0a1428; /* Deep navy blue background */
+  --foreground: #e8f4f8; /* Light blue-white text */
+  --card: #1a2b42; /* Dark blue card background */
+  --card-foreground: #e8f4f8; /* Light text on cards */
+  --popover: #1a2b42; /* Dark blue popover */
+  --popover-foreground: #e8f4f8; /* Light popover text */
+  --primary: #f7d200; /* Bright golden yellow for primary actions */
+  --primary-foreground: #0a1428; /* Dark text on golden background */
+  --secondary: #2d4a6b; /* Medium blue for secondary elements */
+  --secondary-foreground: #e8f4f8; /* Light text on secondary */
+  --muted: #1e3a52; /* Muted blue background */
+  --muted-foreground: #94a3b8; /* Muted blue-gray text */
+  --accent: #fbbf24; /* Golden accent color */
+  --accent-foreground: #0a1428; /* Dark text on golden accent */
+  --destructive: #dc2626; /* Red for destructive actions */
+  --destructive-foreground: #fef2f2; /* Light text on red */
+  --border: #2d4a6b; /* Medium blue borders */
+  --input: #1e3a52; /* Dark blue input backgrounds */
+  --ring: #f7d200; /* Golden focus rings */
+  --chart-1: #1e40af; /* Deep blue for charts */
+  --chart-2: #7c3aed; /* Purple accent for charts */
+  --chart-3: #f59e0b; /* Amber for charts */
+  --chart-4: #10b981; /* Emerald for charts */
+  --chart-5: #ef4444; /* Red for charts */
+  --sidebar: #0f1b2e; /* Darker navy for sidebar */
+  --sidebar-foreground: #e8f4f8; /* Light sidebar text */
+  --sidebar-primary: #f7d200; /* Golden sidebar primary */
+  --sidebar-primary-foreground: #0a1428; /* Dark text on golden */
+  --sidebar-accent: #1e3a52; /* Blue sidebar accent */
+  --sidebar-accent-foreground: #e8f4f8; /* Light accent text */
+  --sidebar-border: #2d4a6b; /* Blue sidebar borders */
+  --sidebar-ring: #f7d200; /* Golden sidebar focus */
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

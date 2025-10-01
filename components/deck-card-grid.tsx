@@ -1,0 +1,242 @@
+"use client"
+
+import type { Card } from "@/types/card"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import Image from "next/image"
+import { cn } from "@/lib/utils"
+
+interface DeckCardGridProps {
+  cards: Card[]
+  selectedCard: Card | null
+  onCardSelect: (card: Card) => void
+  onCardAdd: (card: Card) => void
+  onDragStart?: (card: Card) => void
+  onDragEnd?: () => void
+  onCardHover?: (card: Card | null) => void
+  deck?: {
+    mainDeck: Array<{ id: string; deckQuantity: number }>
+    extraDeck: Array<{ id: string; deckQuantity: number }>
+    sideDeck: Array<{ id: string; deckQuantity: number }>
+  }
+  isListView?: boolean
+}
+
+export function DeckCardGrid({
+  cards,
+  selectedCard,
+  onCardSelect,
+  onCardAdd,
+  onDragStart,
+  onDragEnd,
+  onCardHover,
+  deck,
+  isListView = false,
+}: DeckCardGridProps) {
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "Monster":
+        return "bg-orange-500/20 text-orange-700 dark:text-orange-300"
+      case "Spell":
+        return "bg-green-500/20 text-green-700 dark:text-green-300"
+      case "Trap":
+        return "bg-purple-500/20 text-purple-700 dark:text-purple-300"
+      default:
+        return "bg-gray-500/20 text-gray-700 dark:text-gray-300"
+    }
+  }
+
+  const getTotalCopiesInDeck = (cardId: string) => {
+    if (!deck) return 0
+
+    const mainCopies = deck.mainDeck.find((c) => c.id === cardId)?.deckQuantity || 0
+    const extraCopies = deck.extraDeck.find((c) => c.id === cardId)?.deckQuantity || 0
+    const sideCopies = deck.sideDeck.find((c) => c.id === cardId)?.deckQuantity || 0
+
+    return mainCopies + extraCopies + sideCopies
+  }
+
+  const canAddCard = (card: Card) => {
+    const totalCopies = getTotalCopiesInDeck(card.id)
+    return totalCopies < 3 && totalCopies < card.quantity
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-4 h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-2">No se encontraron cartas</p>
+          <p className="text-sm text-muted-foreground">Intenta ajustar los filtros de búsqueda</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <h3 className="text-sm font-semibold">Cartas ({cards.length})</h3>
+        <p className="text-xs text-muted-foreground">Arrastra o + para agregar</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {isListView ? (
+          // List View - Image on left, data on right
+          <div className="space-y-1">
+            {cards.map((card) => {
+              const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
+              const canAdd = canAddCard(card)
+
+              return (
+                <div
+                  key={card.id}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
+                    selectedCard?.id === card.id && "bg-primary/10 ring-1 ring-primary",
+                    !canAdd && "opacity-50 grayscale",
+                  )}
+                  onClick={() => onCardSelect(card)}
+                  onMouseEnter={() => onCardHover?.(card)}
+                  onMouseLeave={() => onCardHover?.(null)}
+                  draggable={canAdd}
+                  onDragStart={() => canAdd && onDragStart?.(card)}
+                  onDragEnd={onDragEnd}
+                >
+                  {/* Card Image - Small on left */}
+                  <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary/10 to-accent/10">
+                    <Image
+                      src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                      alt={card.name}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                    {totalCopiesInDeck > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                        {totalCopiesInDeck}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Data - Right side */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium truncate">{card.name}</h4>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className={cn("text-xs px-1.5 py-0.5 rounded", getTypeColor(card.card_type))}>
+                            {card.card_type}
+                          </span>
+                          {card.rarity && <span className="text-xs text-muted-foreground">{card.rarity}</span>}
+                        </div>
+                        {/* Monster stats */}
+                        {card.card_type === "Monster" && card.atk !== null && card.def !== null && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            ATK: {card.atk} / DEF: {card.def}
+                            {card.level_rank_link && ` • Lv.${card.level_rank_link}`}
+                          </div>
+                        )}
+                        {/* Collection quantity */}
+                        <div className="text-xs text-muted-foreground mt-1">Disponibles: {card.quantity}</div>
+                      </div>
+
+                      {/* Add button */}
+                      <Button
+                        size="sm"
+                        className={cn(
+                          "h-6 w-6 p-0 ml-2 flex-shrink-0",
+                          canAdd ? "bg-primary hover:bg-primary/90" : "bg-gray-400 cursor-not-allowed",
+                        )}
+                        disabled={!canAdd}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (canAdd) {
+                            onCardAdd(card)
+                          }
+                        }}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {!canAdd && (
+                    <div className="absolute inset-0 bg-red-500/10 rounded flex items-center justify-center">
+                      <div className="bg-red-500 text-white text-xs px-1 py-0.5 rounded font-bold">LÍMITE</div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          // Original Grid View
+          <div className="grid grid-cols-4 gap-1.5">
+            {cards.map((card) => {
+              const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
+              const canAdd = canAddCard(card)
+
+              return (
+                <div key={card.id} className="relative group">
+                  <div
+                    className={cn(
+                      "relative aspect-[2/3] cursor-pointer transition-all duration-200 bg-gradient-to-br from-primary/10 to-accent/10 rounded overflow-hidden",
+                      selectedCard?.id === card.id && "ring-2 ring-primary",
+                      !canAdd && "opacity-50 grayscale",
+                    )}
+                    onClick={() => onCardSelect(card)}
+                    onMouseEnter={() => onCardHover?.(card)}
+                    onMouseLeave={() => onCardHover?.(null)}
+                    draggable={canAdd}
+                    onDragStart={() => canAdd && onDragStart?.(card)}
+                    onDragEnd={onDragEnd}
+                  >
+                    <Image
+                      src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                      alt={card.name}
+                      fill
+                      className="object-cover rounded"
+                      sizes="(max-width: 768px) 25vw, 15vw"
+                    />
+                    {card.quantity > 1 && (
+                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                        {card.quantity}
+                      </div>
+                    )}
+                    {totalCopiesInDeck > 0 && (
+                      <div className="absolute bottom-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                        {totalCopiesInDeck}
+                      </div>
+                    )}
+                    {!canAdd && (
+                      <div className="absolute inset-0 bg-red-500/20 rounded flex items-center justify-center">
+                        <div className="bg-red-500 text-white text-xs px-1 py-0.5 rounded font-bold">LÍMITE</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className={cn(
+                      "absolute top-1 left-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10",
+                      canAdd ? "bg-primary hover:bg-primary/90" : "bg-gray-400 cursor-not-allowed",
+                    )}
+                    disabled={!canAdd}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (canAdd) {
+                        onCardAdd(card)
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

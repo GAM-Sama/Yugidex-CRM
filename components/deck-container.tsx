@@ -81,7 +81,7 @@ export function DeckContainer({
                 className="relative aspect-[2/3] w-full cursor-pointer group-hover:scale-150 group-hover:z-10 transition-transform duration-200 origin-bottom"
               >
                 <Image
-                  src={card.image_url || "/placeholder.svg"}
+                  src={card.image_url || "/card-back.png"}
                   alt={card.name}
                   fill
                   className="object-cover"

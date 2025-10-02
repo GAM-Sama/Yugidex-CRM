@@ -63,7 +63,7 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
         {/* Card Image */}
         <div className="relative aspect-[2/3] w-full max-w-sm mx-auto overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10">
           <Image
-            src={card.image_url || "/placeholder.svg?height=600&width=400&query=Yu-Gi-Oh card back"}
+            src={card.image_url || "/card-back.png?height=600&width=400&query=Yu-Gi-Oh card back"}
             alt={card.name}
             fill
             className="object-cover"

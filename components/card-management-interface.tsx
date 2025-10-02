@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import type { Card } from "@/types/card"
-import { CardDetailPanel } from "@/components/card-detail-panel"
+import { DeckCardPreview } from "@/components/deck-card-preview"
 import { CardGrid } from "@/components/card-grid"
 import { CardSearchAndFilters } from "@/components/card-search-and-filters"
 import type { CardFilters } from "@/types/card"
@@ -12,7 +12,7 @@ interface CardManagementInterfaceProps {
 }
 
 export function CardManagementInterface({ initialCards }: CardManagementInterfaceProps) {
-  const [cards] = useState<Card[]>(initialCards)
+  const [cards, setCards] = useState<Card[]>(initialCards)
   const [selectedCard, setSelectedCard] = useState<Card | null>(initialCards.length > 0 ? initialCards[0] : null)
   const [filters, setFilters] = useState<CardFilters>({
     search: "",
@@ -27,7 +27,34 @@ export function CardManagementInterface({ initialCards }: CardManagementInterfac
     minDef: "",
   })
 
+  useEffect(() => {
+    setCards(initialCards);
+    if (initialCards.length > 0) {
+        const selectedCardStillExists = initialCards.some(card => card.id === selectedCard?.id);
+        if (!selectedCard || !selectedCardStillExists) {
+            setSelectedCard(initialCards[0]);
+        }
+    } else {
+        setSelectedCard(null);
+    }
+  }, [initialCards, selectedCard]);
+
   const filteredCards = useMemo(() => {
+    if (
+        filters.search === "" &&
+        filters.cardTypes.length === 0 &&
+        filters.attributes.length === 0 &&
+        filters.monsterTypes.length === 0 &&
+        filters.levels.length === 0 &&
+        filters.monsterClassifications.length === 0 &&
+        filters.spellTrapIcons.length === 0 &&
+        filters.subtypes.length === 0 &&
+        filters.minAtk === "" &&
+        filters.minDef === ""
+    ) {
+        return cards;
+    }
+
     return cards.filter((card) => {
       const matchesSearch = card.name.toLowerCase().includes(filters.search.toLowerCase())
       const matchesType = filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
@@ -77,22 +104,32 @@ export function CardManagementInterface({ initialCards }: CardManagementInterfac
 
   return (
     <main className="container mx-auto px-6 py-8">
+      {/* --- INICIO DE LA CORRECCIÓN --- */}
+      
+      {/* 1. El título y el subtítulo ahora están fuera del div 'sticky' */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-balance mb-2">Gestión de Cartas</h1>
         <p className="text-muted-foreground text-pretty">Explora y gestiona tu colección de cartas Yu-Gi-Oh!</p>
       </div>
 
-      <CardSearchAndFilters filters={filters} onFiltersChange={setFilters} />
+      {/* 2. El div 'sticky' ahora solo contiene la barra de búsqueda y filtros */}
+      <div className="sticky top-16 bg-background/80 backdrop-blur-sm z-20 pt-4 pb-4 mb-6">
+        <CardSearchAndFilters filters={filters} onFiltersChange={setFilters} />
+      </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 mt-6">
-        <div className="w-full lg:w-1/3 flex-shrink-0">
-          <CardDetailPanel card={selectedCard} />
+      {/* 3. El contenedor de las columnas principales tiene un margen superior para compensar */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* El 'top' del panel izquierdo se ajusta a la nueva altura del header 'sticky' */}
+        <div className="w-full lg:w-1/3 flex-shrink-0 sticky top-32 z-10">
+          <DeckCardPreview card={selectedCard} />
         </div>
 
-        <div className="w-full lg:w-2/3 flex-shrink-0">
+        <div className="w-full lg:w-2/3">
           <CardGrid cards={filteredCards} selectedCard={selectedCard} onCardSelect={setSelectedCard} />
         </div>
       </div>
+      
+      {/* --- FIN DE LA CORRECCIÓN --- */}
     </main>
   )
 }

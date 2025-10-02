@@ -183,7 +183,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
       onClick={() => setSelectedCard(card)}
     >
       <div className="relative aspect-[2/3] w-full cursor-pointer group-hover:scale-150 group-hover:z-10 transition-transform duration-200 origin-bottom">
-        <Image src={card.image_url || "/placeholder.svg"} alt={card.name} fill className="object-cover" sizes="5vw" />
+        <Image src={card.image_url || "/card-back.png"} alt={card.name} fill className="object-cover" sizes="5vw" />
         {card.deckQuantity > 1 && <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg">{card.deckQuantity}</div>}
       </div>
       <Button size="sm" variant="destructive" className="absolute top-0 left-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" onClick={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, deckType)}}>

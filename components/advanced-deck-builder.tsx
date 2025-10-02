@@ -240,7 +240,7 @@ export function AdvancedDeckBuilder({ deckId, initialCards, initialDeck }: Advan
             <div className="space-y-3">
               <div className="relative aspect-[2/3] w-full max-w-[280px] mx-auto overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-accent/10">
                 <Image
-                  src={selectedCard.image_url || "/placeholder.svg?height=600&width=400&query=Yu-Gi-Oh card back"}
+                  src={selectedCard.image_url || "/card-back.png?height=600&width=400&query=Yu-Gi-Oh card back"}
                   alt={selectedCard.name}
                   fill
                   className="object-cover"
@@ -458,7 +458,7 @@ export function AdvancedDeckBuilder({ deckId, initialCards, initialDeck }: Advan
                       onClick={() => setSelectedCard(card)}
                     >
                       <Image
-                        src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                        src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
                         alt={card.name}
                         fill
                         className="object-cover"
@@ -508,7 +508,7 @@ export function AdvancedDeckBuilder({ deckId, initialCards, initialDeck }: Advan
                       onClick={() => setSelectedCard(card)}
                     >
                       <Image
-                        src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                        src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
                         alt={card.name}
                         fill
                         className="object-cover"
@@ -558,7 +558,7 @@ export function AdvancedDeckBuilder({ deckId, initialCards, initialDeck }: Advan
                       onClick={() => setSelectedCard(card)}
                     >
                       <Image
-                        src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                        src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
                         alt={card.name}
                         fill
                         className="object-cover"
@@ -604,7 +604,7 @@ export function AdvancedDeckBuilder({ deckId, initialCards, initialDeck }: Advan
                       {/* Card Image */}
                       <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary/10 to-accent/10">
                         <Image
-                          src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                          src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
                           alt={card.name}
                           fill
                           className="object-cover"

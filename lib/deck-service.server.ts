@@ -1,11 +1,10 @@
 // lib/deck-service.server.ts
 
 import 'server-only';
-import { getSupabaseServer } from "./supabase-server"; // Asumiendo que esta es tu función
+import { getSupabaseServer } from "./supabase-server";
 import type { Deck } from "@/types/deck";
 
 export async function getUserDecks(): Promise<Deck[]> {
-  // 1. El cliente se crea aquí, DENTRO de la función
   const supabase = getSupabaseServer();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -13,13 +12,17 @@ export async function getUserDecks(): Promise<Deck[]> {
     return [];
   }
 
+  // --- INICIO DE LA CORRECCIÓN ---
+  // Volvemos a la consulta simple que sabemos que funciona con tus RLS
   const { data, error } = await supabase
     .from('decks')
-    .select('*, main_deck:deck_cards(quantity), extra_deck:deck_cards(quantity), side_deck:deck_cards(quantity)')
-    .eq('user_id', user.id)
+    .select('*')
+    .eq('user_id', user.id) // Mantenemos el filtro explícito por seguridad
     .order("updated_at", { ascending: false });
+  // --- FIN DE LA CORRECCIÓN ---
     
   if (error) {
+    // Si sigue fallando aquí, el error ya no será un objeto vacío y nos dará más pistas
     console.error("Error fetching decks:", error);
     throw error;
   }
@@ -28,14 +31,12 @@ export async function getUserDecks(): Promise<Deck[]> {
 }
 
 export async function getDeckById(id: string): Promise<Deck | null> {
-  // 2. El cliente también se crea aquí, DENTRO de esta función
   const supabase = getSupabaseServer();
 
   const { data, error } = await supabase.from("decks").select("*").eq("id", id).single();
   
   if (error) {
     console.error("Error fetching deck:", error);
-    // Devuelve null en lugar de lanzar un error para que la página pueda redirigir
     return null;
   }
 

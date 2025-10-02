@@ -1,68 +1,71 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { Navbar } from "@/components/navbar"
-import { CardManagementInterface } from "@/components/card-management-interface"
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { Navbar } from "@/components/navbar";
+import { CardManagementInterface } from "@/components/card-management-interface";
+import type { Card } from "@/types/card";
+import Link from 'next/link';
 
-export default async function CardsPage() {
-  const supabase = await createClient()
+interface CardsPageProps {
+  searchParams: {
+    page?: string;
+  };
+}
 
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
+export default async function CardsPage({ searchParams }: CardsPageProps) {
+  const supabase = await createClient();
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    redirect("/auth/login");
   }
 
-  // ===== CONSULTA DIRECTA DESDE TABLA Cartas =====
-  let userCards: any[] = []
+  const currentPage = Number.parseInt(searchParams.page || '1', 10);
+  const cardsPerPage = 48;
+  const from = (currentPage - 1) * cardsPerPage;
+  const to = from + cardsPerPage - 1;
 
-  try {
-    const { data: cards, error: cardsError } = await supabase.from("Cartas").select("*")
-    // .limit(20)
+  const { data: cards, error: cardsError } = await supabase
+    .from("Cartas")
+    .select("*")
+    .range(from, to);
+    
+  // La lógica para calcular totalPages ya no es necesaria para la vista,
+  // pero la dejamos por si implementas scroll infinito en el futuro.
+  const { count: totalCards } = await supabase
+    .from("Cartas")
+    .select('*', { count: 'exact', head: true });
+  const totalPages = Math.ceil((totalCards || 0) / cardsPerPage);
 
-    if (cardsError) {
-      console.log("[v0] Error en consulta:", cardsError.message)
-      userCards = []
-    } else {
-      // Mapear los campos de la base de datos a la interfaz Card
-      userCards =
-        cards?.map((card: any) => ({
-          id: card.ID_Carta?.toString() || card.id?.toString(),
-          user_id: data.user.id,
-          name: card.Nombre || card.name || "",
-          image_url: card.Imagen || card.image_url,
-          card_type: card.Marco_Carta || card.card_type || "Monster",
-          monster_type: card.Tipo || card.monster_type,
-          attribute: card.Atributo || card.attribute,
-          level_rank_link: card.Nivel_Rank_Link || card.level_rank_link,
-          atk: card.ATK || card.atk,
-          def: card.DEF || card.def,
-          description: card.Descripcion || card.description,
-          rarity: card.Rareza || card.rarity,
-          set_name: card.Set_Expansion || card.set_name,
-          set_code: card.set_code, // Este campo puede no existir en la BD
-          quantity: card.Cantidad || card.quantity || 1,
-          condition: card.condition, // Este campo puede no existir en la BD
-          price: card.price, // Este campo puede no existir en la BD
-          card_icon: card["Icono Carta"] || card.card_icon,
-          subtype: card.Subtipo || card.subtype,
-          classification: card.Clasificacion || card.classification,
-          created_at: card.created_at || new Date().toISOString(),
-          updated_at: card.updated_at || new Date().toISOString(),
-        })) || []
-
-      console.log("[v0] Cartas mapeadas:", userCards.length)
-      console.log("[v0] Primera carta mapeada:", userCards[0])
-    }
-  } catch (error) {
-    console.log("[v0] Exception en consulta:", error)
-    userCards = []
-  }
-
-  console.log("[v0] Cartas cargadas:", userCards.length)
+  const userCards: Card[] = cards?.map((card: any) => ({
+    id: card.ID_Carta?.toString() || card.id?.toString(),
+    user_id: user.id,
+    name: card.Nombre || card.name || "",
+    image_url: card.Imagen || card.image_url,
+    card_type: card.Marco_Carta || card.card_type || "Monster",
+    monster_type: card.Tipo || card.monster_type,
+    attribute: card.Atributo || card.attribute,
+    level_rank_link: card.Nivel_Rank_Link || card.level_rank_link,
+    atk: card.ATK || card.atk,
+    def: card.DEF || card.def,
+    description: card.Descripcion || card.description,
+    rarity: card.Rareza || card.rarity,
+    set_name: card.Set_Expansion || card.set_name,
+    set_code: card.set_code,
+    quantity: card.Cantidad || card.quantity || 1,
+    condition: card.condition,
+    price: card.price,
+    card_icon: card["Icono Carta"] || card.card_icon,
+    subtype: card.Subtipo || card.subtype,
+    classification: card.Clasificacion || card.classification,
+    created_at: card.created_at || new Date().toISOString(),
+    updated_at: card.updated_at || new Date().toISOString(),
+  })) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
-      <Navbar user={data.user} />
+    <div className="bg-gradient-to-br from-background via-primary/5 to-accent/5">
+      <Navbar user={user} />
       <CardManagementInterface initialCards={userCards} />
+      {/* --- La barra de paginación ha sido eliminada de aquí --- */}
     </div>
-  )
+  );
 }

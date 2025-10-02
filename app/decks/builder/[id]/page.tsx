@@ -5,35 +5,51 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/navbar";
 import { DeckBuilder } from "@/components/deck-builder";
 import type { Card } from "@/types/card";
-
-// 1. Importamos la función específica DESDE EL SERVICIO DE SERVIDOR
 import { getDeckById } from "@/lib/deck-service.server"; 
+import Link from "next/link";
 
 interface DeckBuilderPageProps {
   params: {
-    id: string
-  }
+    id: string;
+  };
+  searchParams: {
+    page?: string;
+  };
 }
 
-export default async function DeckBuilderPage({ params }: DeckBuilderPageProps) {
+export default async function DeckBuilderPage({ params, searchParams }: DeckBuilderPageProps) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
     redirect("/auth/login");
   }
 
-  // 2. Usamos la función del servicio de servidor directamente
   const deck = await getDeckById(params.id);
   if (!deck) {
-    redirect("/decks");
+    return redirect("/decks");
   }
+  
+  // La lógica de paginación se mantiene para que la carga sea rápida
+  const currentPage = Number.parseInt((await searchParams).page || '1', 10);
+  const cardsPerPage = 50;
+  const from = (currentPage - 1) * cardsPerPage;
+  const to = from + cardsPerPage - 1;
 
-  // El resto de tu código para obtener las cartas disponibles está bien
-  const { data: cardsData } = await supabase.from("Cartas").select("*");
+  const { data: cardsData, error: cardsError } = await supabase
+    .from("Cartas")
+    .select("*")
+    .range(from, to);
+
+  const { count: totalCards } = await supabase
+    .from("Cartas")
+    .select('*', { count: 'exact', head: true });
+
+  const totalPages = Math.ceil((totalCards || 0) / cardsPerPage);
+  
   const availableCards: Card[] = cardsData?.map((card: any) => ({
       id: card.ID_Carta?.toString() || card.id?.toString(),
-      user_id: data.user!.id,
+      user_id: user.id,
       name: card.Nombre || card.name || "",
       image_url: card.Imagen || card.image_url,
       card_type: card.Marco_Carta || card.card_type || "Monster",
@@ -56,12 +72,15 @@ export default async function DeckBuilderPage({ params }: DeckBuilderPageProps) 
       updated_at: card.updated_at || new Date().toISOString(),
   })) || [];
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
-      <Navbar user={data.user} />
+      <Navbar user={user} />
       <main className="container mx-auto px-6 py-4">
-        <DeckBuilder deckId={params.id} initialCards={availableCards} initialDeck={deck} />
+        <DeckBuilder 
+          deckId={params.id} 
+          initialCards={availableCards} 
+          initialDeck={deck} 
+        />
       </main>
     </div>
   );

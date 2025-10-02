@@ -33,26 +33,12 @@ export function DeckCardGrid({
   deck,
   isListView = false,
 }: DeckCardGridProps) {
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Monster":
-        return "bg-orange-500/20 text-orange-700 dark:text-orange-300"
-      case "Spell":
-        return "bg-green-500/20 text-green-700 dark:text-green-300"
-      case "Trap":
-        return "bg-purple-500/20 text-purple-700 dark:text-purple-300"
-      default:
-        return "bg-gray-500/20 text-gray-700 dark:text-gray-300"
-    }
-  }
-
+  
   const getTotalCopiesInDeck = (cardId: string) => {
     if (!deck) return 0
-
     const mainCopies = deck.mainDeck.find((c) => c.id === cardId)?.deckQuantity || 0
     const extraCopies = deck.extraDeck.find((c) => c.id === cardId)?.deckQuantity || 0
     const sideCopies = deck.sideDeck.find((c) => c.id === cardId)?.deckQuantity || 0
-
     return mainCopies + extraCopies + sideCopies
   }
 
@@ -81,7 +67,6 @@ export function DeckCardGrid({
 
       <div className="flex-1 overflow-y-auto">
         {isListView ? (
-          // List View - Image on left, data on right
           <div className="space-y-1">
             {cards.map((card) => {
               const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
@@ -102,10 +87,10 @@ export function DeckCardGrid({
                   onDragStart={() => canAdd && onDragStart?.(card)}
                   onDragEnd={onDragEnd}
                 >
-                  {/* Card Image - Small on left */}
+                  {/* Card Image */}
                   <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary/10 to-accent/10">
                     <Image
-                      src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                      src={card.image_url || "/card-back.png"}
                       alt={card.name}
                       fill
                       className="object-cover"
@@ -118,25 +103,24 @@ export function DeckCardGrid({
                     )}
                   </div>
 
-                  {/* Card Data - Right side */}
+                  {/* Card Data */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium truncate">{card.name}</h4>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className={cn("text-xs px-1.5 py-0.5 rounded", getTypeColor(card.card_type))}>
-                            {card.card_type}
-                          </span>
-                          {card.rarity && <span className="text-xs text-muted-foreground">{card.rarity}</span>}
-                        </div>
-                        {/* Monster stats */}
-                        {card.card_type === "Monster" && card.atk !== null && card.def !== null && (
+                        
+                        {/* --- INICIO DE LA MODIFICACIÓN --- */}
+                        {card.card_type === "Monster" && card.atk !== null ? (
                           <div className="text-xs text-muted-foreground mt-1">
                             ATK: {card.atk} / DEF: {card.def}
-                            {card.level_rank_link && ` • Lv.${card.level_rank_link}`}
                           </div>
-                        )}
-                        {/* Collection quantity */}
+                        ) : (card.card_type === "Spell" || card.card_type === "Trap") && card.card_icon ? (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {card.card_icon}
+                          </div>
+                        ) : null}
+                        {/* --- FIN DE LA MODIFICACIÓN --- */}
+                        
                         <div className="text-xs text-muted-foreground mt-1">Disponibles: {card.quantity}</div>
                       </div>
 
@@ -161,7 +145,7 @@ export function DeckCardGrid({
                   </div>
 
                   {!canAdd && (
-                    <div className="absolute inset-0 bg-red-500/10 rounded flex items-center justify-center">
+                    <div className="absolute inset-0 bg-red-500/10 rounded flex items-center justify-center pointer-events-none">
                       <div className="bg-red-500 text-white text-xs px-1 py-0.5 rounded font-bold">LÍMITE</div>
                     </div>
                   )}
@@ -170,7 +154,7 @@ export function DeckCardGrid({
             })}
           </div>
         ) : (
-          // Original Grid View
+          // Vista de Grid Original (sin modificar)
           <div className="grid grid-cols-4 gap-1.5">
             {cards.map((card) => {
               const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
@@ -192,7 +176,7 @@ export function DeckCardGrid({
                     onDragEnd={onDragEnd}
                   >
                     <Image
-                      src={card.image_url || "/placeholder.svg?height=300&width=200&query=Yu-Gi-Oh card back"}
+                      src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
                       alt={card.name}
                       fill
                       className="object-cover rounded"

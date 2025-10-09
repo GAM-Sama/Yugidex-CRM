@@ -1,28 +1,27 @@
 // lib/deck-service.server.ts
 
 import 'server-only';
-import { getSupabaseServer } from "./supabase-server";
+// CAMBIO 1: Importa el tipo SupabaseClient para un tipado fuerte.
+import { type SupabaseClient } from '@supabase/supabase-js';
 import type { Deck } from "@/types/deck";
 
-export async function getUserDecks(): Promise<Deck[]> {
-  const supabase = getSupabaseServer();
+// CAMBIO 2: La función ahora acepta 'supabase' como primer argumento.
+export async function getUserDecks(supabase: SupabaseClient): Promise<Deck[]> {
+  // CAMBIO 3: Eliminamos esta línea. Ya no se crea el cliente aquí.
+  // const supabase = getSupabaseServer();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return [];
   }
 
-  // --- INICIO DE LA CORRECCIÓN ---
-  // Volvemos a la consulta simple que sabemos que funciona con tus RLS
   const { data, error } = await supabase
-    .from('decks')
+    .from('decks') // Asegúrate que tu tabla se llame 'decks' y no 'Mazos'
     .select('*')
-    .eq('user_id', user.id) // Mantenemos el filtro explícito por seguridad
+    .eq('user_id', user.id)
     .order("updated_at", { ascending: false });
-  // --- FIN DE LA CORRECCIÓN ---
     
   if (error) {
-    // Si sigue fallando aquí, el error ya no será un objeto vacío y nos dará más pistas
     console.error("Error fetching decks:", error);
     throw error;
   }
@@ -30,8 +29,10 @@ export async function getUserDecks(): Promise<Deck[]> {
   return data as Deck[];
 }
 
-export async function getDeckById(id: string): Promise<Deck | null> {
-  const supabase = getSupabaseServer();
+// CAMBIO 4: Hacemos lo mismo para getDeckById.
+export async function getDeckById(supabase: SupabaseClient, id: string): Promise<Deck | null> {
+  // Eliminamos esta línea también.
+  // const supabase = getSupabaseServer();
 
   const { data, error } = await supabase.from("decks").select("*").eq("id", id).single();
   

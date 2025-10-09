@@ -1,46 +1,81 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { Navbar } from "@/components/navbar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Eye, BarChart3, Sword, Sparkles, Shield } from "lucide-react"
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { Navbar } from "@/components/navbar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Eye, BarChart3, Sword, Sparkles, Shield } from "lucide-react";
+
+// --- PASO 1: DEFINIR LOS TIPOS (Esto está bien y nos da seguridad) ---
+type RawCardData = {
+  Nombre?: string;
+  Marco_Carta?: 'Monster' | 'Spell' | 'Trap' | string;
+  // Añade cualquier otra propiedad de la tabla 'Cartas' que necesites
+  [key: string]: any; // Permite otras propiedades sin que TypeScript se queje
+};
+
+type UserCardFromDB = {
+  cantidad: number;
+  created_at: string;
+  Cartas: RawCardData | null;
+};
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    redirect("/auth/login");
   }
 
-  const { data: cardStats } = await supabase.from("Cartas").select("*")
-  // Removido el filtro .eq("user_id", data.user.id) que causaba el problema
+  // --- PASO 2: REALIZAR LA CONSULTA Y APLICAR EL TIPO (Esto está bien) ---
+  const { data, error: userCardsError } = await supabase
+    .from('user_cards')
+    .select(`
+      cantidad,
+      created_at,
+      Cartas ( * ) 
+    `)
+    .eq('user_id', user.id);
 
-  const totalCards = cardStats?.length || 0
-  const monsterCards = cardStats?.filter((card) => card.Marco_Carta === "Monster").length || 0
-  const spellCards = cardStats?.filter((card) => card.Marco_Carta === "Spell").length || 0
-  const trapCards = cardStats?.filter((card) => card.Marco_Carta === "Trap").length || 0
+  const userCardsData = data as UserCardFromDB[] | null;
 
-  const recentCards =
-    cardStats
-      ?.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-      .slice(0, 3) || []
+  if (userCardsError) {
+    console.error("Error fetching dashboard data:", userCardsError);
+  }
+  
+  // --- PASO 3: FILTRAR PRIMERO, LUEGO TRANSFORMAR (¡LA CORRECCIÓN CLAVE!) ---
+  const cardStats = (userCardsData || [])
+    // 3.1: Filtramos para quedarnos solo con las filas que SÍ tienen datos de la carta
+    .filter((userCard): userCard is UserCardFromDB & { Cartas: RawCardData } => userCard.Cartas !== null)
+    // 3.2: Ahora que estamos 100% seguros de que 'userCard.Cartas' no es nulo, transformamos.
+    .map(userCard => ({
+      ...userCard.Cartas,
+      card_type: userCard.Cartas.Marco_Carta,
+      cantidad_usuario: userCard.cantidad,
+      created_at: userCard.created_at,
+    }));
+  
+  // --- PASO 4: CALCULAR ESTADÍSTICAS (Ahora funciona perfectamente) ---
+  const totalCards = cardStats.reduce((sum, card) => sum + (card.cantidad_usuario || 0), 0);
+  const monsterCards = cardStats.filter((card) => card.card_type === "Monster").reduce((sum, card) => sum + (card.cantidad_usuario || 0), 0);
+  const spellCards = cardStats.filter((card) => card.card_type === "Spell").reduce((sum, card) => sum + (card.cantidad_usuario || 0), 0);
+  const trapCards = cardStats.filter((card) => card.card_type === "Trap").reduce((sum, card) => sum + (card.cantidad_usuario || 0), 0);
+
+  const recentCards = cardStats
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
-      <Navbar user={data.user} />
-
+      <Navbar user={user} />
       <main className="container mx-auto px-6 py-8">
-        {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-balance mb-2">Bienvenido a tu Dashboard</h1>
           <p className="text-muted-foreground text-pretty">
             Gestiona tu colección de cartas Yu-Gi-Oh! de manera eficiente
           </p>
         </div>
-
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -52,7 +87,6 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted-foreground">En tu colección</p>
             </CardContent>
           </Card>
-
           <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cartas de Monstruos</CardTitle>
@@ -63,7 +97,6 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted-foreground">Normales, Fusiones, XYZ, etc.</p>
             </CardContent>
           </Card>
-
           <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cartas Mágicas</CardTitle>
@@ -74,7 +107,6 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted-foreground">Hechizos y efectos</p>
             </CardContent>
           </Card>
-
           <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cartas Trampa</CardTitle>
@@ -86,8 +118,6 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="border-0 shadow-xl bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/15 hover:to-primary/10 transition-all duration-300 cursor-pointer group">
             <CardHeader>
@@ -103,7 +133,6 @@ export default async function DashboardPage() {
               </Button>
             </CardContent>
           </Card>
-
           <Card className="border-0 shadow-xl bg-gradient-to-br from-accent/10 to-accent/5 hover:from-accent/15 hover:to-accent/10 transition-all duration-300 cursor-pointer group">
             <CardHeader>
               <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center mb-4 group-hover:bg-accent/30 transition-colors">
@@ -113,16 +142,11 @@ export default async function DashboardPage() {
               <CardDescription>Crea, edita y gestiona tus decks de Yu-Gi-Oh!</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full rounded-xl border-accent/20 hover:bg-accent/10 bg-transparent"
-              >
+              <Button asChild variant="outline" className="w-full rounded-xl border-accent/20 hover:bg-accent/10 bg-transparent">
                 <Link href="/decks">Gestionar Decks</Link>
               </Button>
             </CardContent>
           </Card>
-
           <Card className="border-0 shadow-xl bg-gradient-to-br from-secondary/10 to-secondary/5 hover:from-secondary/15 hover:to-secondary/10 transition-all duration-300 cursor-pointer group">
             <CardHeader>
               <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center mb-4 group-hover:bg-secondary/30 transition-colors">
@@ -138,8 +162,6 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Activity */}
         <div className="mt-8">
           <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -181,5 +203,5 @@ export default async function DashboardPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

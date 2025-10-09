@@ -6,7 +6,6 @@ import { Navbar } from "@/components/navbar";
 import { DeckBuilder } from "@/components/deck-builder";
 import type { Card } from "@/types/card";
 import { getDeckById } from "@/lib/deck-service.server"; 
-import Link from "next/link";
 
 interface DeckBuilderPageProps {
   params: {
@@ -20,56 +19,65 @@ interface DeckBuilderPageProps {
 export default async function DeckBuilderPage({ params, searchParams }: DeckBuilderPageProps) {
   const supabase = await createClient();
 
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     redirect("/auth/login");
   }
 
-  const deck = await getDeckById(params.id);
+  // --- CORRECCIÓN 1: Pasar 'supabase' a la función de servicio ---
+  const deck = await getDeckById(supabase, params.id);
   if (!deck) {
     return redirect("/decks");
   }
   
-  // La lógica de paginación se mantiene para que la carga sea rápida
-  const currentPage = Number.parseInt((await searchParams).page || '1', 10);
+  // --- CORRECCIÓN 4: Eliminar el 'await' innecesario ---
+  const currentPage = Number.parseInt(searchParams.page || '1', 10);
   const cardsPerPage = 50;
   const from = (currentPage - 1) * cardsPerPage;
   const to = from + cardsPerPage - 1;
 
-  const { data: cardsData, error: cardsError } = await supabase
-    .from("Cartas")
-    .select("*")
+  // --- CORRECCIÓN 2: Cargar las cartas de la colección del usuario ---
+  const { data: userCardsData, error: cardsError } = await supabase
+    .from("user_cards")
+    .select(`
+      cantidad,
+      Cartas(*)
+    `)
+    .eq('user_id', user.id)
     .range(from, to);
 
+  // --- CORRECCIÓN 3: Contar solo las cartas del usuario ---
   const { count: totalCards } = await supabase
-    .from("Cartas")
-    .select('*', { count: 'exact', head: true });
+    .from("user_cards")
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
 
   const totalPages = Math.ceil((totalCards || 0) / cardsPerPage);
   
-  const availableCards: Card[] = cardsData?.map((card: any) => ({
-      id: card.ID_Carta?.toString() || card.id?.toString(),
+  // El mapeo se ajusta a la nueva estructura de datos (igual que en la página de cartas)
+  const availableCards: Card[] = userCardsData?.map((userCard: any) => ({
+      id: userCard.Cartas.ID_Carta?.toString() || userCard.Cartas.id?.toString(),
       user_id: user.id,
-      name: card.Nombre || card.name || "",
-      image_url: card.Imagen || card.image_url,
-      card_type: card.Marco_Carta || card.card_type || "Monster",
-      monster_type: card.Tipo || card.monster_type,
-      attribute: card.Atributo || card.attribute,
-      level_rank_link: card.Nivel_Rank_Link || card.level_rank_link,
-      atk: card.ATK || card.atk,
-      def: card.DEF || card.def,
-      description: card.Descripcion || card.description,
-      rarity: card.Rareza || card.rarity,
-      set_name: card.Set_Expansion || card.set_name,
-      set_code: card.set_code,
-      quantity: card.Cantidad || card.quantity || 1,
-      condition: card.condition,
-      price: card.price,
-      card_icon: card["Icono Carta"] || card.card_icon,
-      subtype: card.Subtipo || card.subtype,
-      classification: card.Clasificacion || card.classification,
-      created_at: card.created_at || new Date().toISOString(),
-      updated_at: card.updated_at || new Date().toISOString(),
+      name: userCard.Cartas.Nombre || "",
+      image_url: userCard.Cartas.Imagen,
+      card_type: userCard.Cartas.Marco_Carta || "Monster",
+      monster_type: userCard.Cartas.Tipo,
+      attribute: userCard.Cartas.Atributo,
+      level_rank_link: userCard.Cartas.Nivel_Rank_Link,
+      atk: userCard.Cartas.ATK,
+      def: userCard.Cartas.DEF,
+      description: userCard.Cartas.Descripcion,
+      rarity: userCard.Cartas.Rareza,
+      set_name: userCard.Cartas.Set_Expansion,
+      set_code: userCard.Cartas.set_code,
+      quantity: userCard.cantidad || 1, // La cantidad viene de 'user_cards'
+      condition: userCard.condition,
+      price: userCard.Cartas.price,
+      card_icon: userCard.Cartas["Icono Carta"],
+      subtype: userCard.Cartas.Subtipo,
+      classification: userCard.Cartas.Clasificacion,
+      created_at: userCard.created_at || new Date().toISOString(),
+      updated_at: userCard.updated_at || new Date().toISOString(),
   })) || [];
 
   return (

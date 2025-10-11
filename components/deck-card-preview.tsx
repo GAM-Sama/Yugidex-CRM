@@ -1,9 +1,10 @@
+// components/deck-card-preview.tsx
 "use client"
 
 import type { Card } from "@/types/card"
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { FlippableCard } from "@/components/ui/flippable-card";
 
 interface DeckCardPreviewProps {
   card: Card | null
@@ -19,6 +20,14 @@ const parseDescription = (description: string) => {
 };
 
 export function DeckCardPreview({ card }: DeckCardPreviewProps) {
+  // Estado para controlar el volteo manual de la carta
+  const [isManuallyFlipped, setIsManuallyFlipped] = useState(true);
+
+  // Cada vez que la carta seleccionada cambia, la mostramos por delante
+  useEffect(() => {
+    setIsManuallyFlipped(true);
+  }, [card]);
+
   if (!card) {
     return (
       <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg h-full flex items-center justify-center p-4">
@@ -30,6 +39,10 @@ export function DeckCardPreview({ card }: DeckCardPreviewProps) {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Monster":
+      case "Fusion Monster":
+      case "Synchro Monster":
+      case "XYZ Monster":
+      case "Link Monster":
         return "bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30"
       case "Spell":
         return "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
@@ -53,25 +66,23 @@ export function DeckCardPreview({ card }: DeckCardPreviewProps) {
         <div className="flex flex-wrap gap-1">
           <Badge className={getTypeColor(card.card_type)}>{card.card_type}</Badge>
           {card.rarity && <Badge variant="outline">{card.rarity}</Badge>}
-
-          {/* --- INICIO DE LA MODIFICACIÓN --- */}
-          {/* Añadimos badges dinámicos para 'classification' y 'subtype' */}
           {card.classification && <Badge variant="secondary">{card.classification}</Badge>}
           {card.subtype && <Badge variant="secondary">{card.subtype}</Badge>}
-          {/* --- FIN DE LA MODIFICACIÓN --- */}
-
         </div>
       </div>
 
-      <div className="relative aspect-[2/3] w-full max-w-[180px] mx-auto mb-3 border border-border/50 bg-gradient-to-br from-primary/10 to-accent/10 flex-shrink-0">
-        <Image
-          src={card.image_url || "/placeholder.svg"}
+      {/* --- INICIO DE LA MODIFICACIÓN --- */}
+      <div 
+        className="relative aspect-[59/86] w-full max-w-[200px] mx-auto mb-3 flex-shrink-0 cursor-pointer"
+        onClick={() => setIsManuallyFlipped(prev => !prev)} // <-- Añadimos el handler de clic aquí
+      >
+        <FlippableCard
+          src={card.image_url || "/card-back.png"}
           alt={card.name}
-          fill
-          className="object-cover"
-          sizes="20vw"
+          isFlipped={isManuallyFlipped} // <-- Le pasamos el estado para que obedezca
         />
       </div>
+      {/* --- FIN DE LA MODIFICACIÓN --- */}
 
       <div className="space-y-3 flex-1 overflow-y-auto text-xs pr-2">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">

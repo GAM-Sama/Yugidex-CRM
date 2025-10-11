@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,8 +12,8 @@ import type { Deck } from "@/types/deck"
 import { DeckService } from "@/lib/deck-service.client"
 import { ArrowLeft, Save, Download, Share, Minus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface DeckBuilderProps {
   deckId: string
@@ -35,6 +34,33 @@ interface LocalDeck {
   sideDeck: DeckCard[]
 }
 
+// --- ✅ SOLUCIÓN: COMPONENTE DEFINIDO FUERA ---
+const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove }: { card: DeckCard; onMouseEnter: () => void; onClick: () => void; onRemove: (e: React.MouseEvent) => void }) => (
+    <div 
+      key={card.id} 
+      className="relative group w-[6.66%] p-0.5" 
+      onMouseEnter={onMouseEnter}
+      onClick={onClick}
+    >
+      <div className="relative aspect-[2/3] w-full cursor-pointer group-hover:scale-150 group-hover:z-10 transition-transform duration-200 origin-bottom">
+        <FlippableCard src={card.image_url || "/card-back.png"} alt={card.name} />
+        {card.deckQuantity > 1 && (
+          <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg z-10">
+            {card.deckQuantity}
+          </div>
+        )}
+      </div>
+      <Button 
+        size="sm" 
+        variant="destructive" 
+        className="absolute top-0 left-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" 
+        onClick={onRemove}
+      >
+        <Minus className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+  
 export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderProps) {
   const router = useRouter()
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
@@ -45,8 +71,6 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [filters, setFilters] = useState<CardFilters>({ search: "", cardTypes: [], attributes: [], monsterTypes: [], levels: [], monsterClassifications: [], spellTrapIcons: [], subtypes: [], minAtk: "", minDef: "" })
-  
-  // Nuevo estado para la lógica anti-parpadeo
   const [dragCounter, setDragCounter] = useState(0);
 
   useEffect(() => {
@@ -87,23 +111,44 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
     })
   }, [availableCards, filters])
 
-  const addCardToDeck = (card: CardType, deckType: "main" | "extra" | "side" = "main") => {
-    if (!deck) return
-    let targetDeckType = deckType
-    if (deckType === "main" && card.card_type === "Monster") {
-      const extraDeckTypes = ["Fusion", "Synchro", "Xyz", "Link"]
-      if (card.subtype && extraDeckTypes.includes(card.subtype)) {
-        targetDeckType = "extra"
-      }
+  const addCardToDeck = (card: CardType, intendedDeck: "main" | "extra" | "side" = "main") => {
+    if (!deck) return;
+  
+    let finalDeckType: "main" | "extra" | "side";
+    const extraDeckTypes = ["fusion", "synchro", "xyz", "link"];
+    const cardSubtypeLower = card.subtype?.toLowerCase();
+    const isExtraDeckCard = card.card_type === "Monster" && cardSubtypeLower && extraDeckTypes.includes(cardSubtypeLower);
+  
+    if (isExtraDeckCard) {
+      finalDeckType = intendedDeck === 'main' ? 'extra' : intendedDeck;
+    } else {
+      finalDeckType = intendedDeck === 'extra' ? 'main' : intendedDeck;
     }
-    const targetDeck = targetDeckType === "main" ? deck.mainDeck : targetDeckType === "extra" ? deck.extraDeck : deck.sideDeck
-    const existingCard = targetDeck.find((c) => c.id === card.id)
-    const totalCopiesInAllDecks = (deck.mainDeck.find((c) => c.id === card.id)?.deckQuantity || 0) + (deck.extraDeck.find((c) => c.id === card.id)?.deckQuantity || 0) + (deck.sideDeck.find((c) => c.id === card.id)?.deckQuantity || 0)
-    if (totalCopiesInAllDecks >= 3) { showMessage("No puedes agregar más de 3 copias de la misma carta", "error"); return }
-    if (totalCopiesInAllDecks >= card.quantity) { showMessage(`No tienes más copias de ${card.name} en tu colección (${card.quantity} disponibles)`, "error"); return }
-    if (existingCard) { existingCard.deckQuantity += 1 } else { const deckCard: DeckCard = { ...card, deckQuantity: 1 }; targetDeck.push(deckCard) }
-    setDeck({ ...deck })
-  }
+  
+    const totalCopiesInAllDecks = (deck.mainDeck.find(c => c.id === card.id)?.deckQuantity || 0) + (deck.extraDeck.find(c => c.id === card.id)?.deckQuantity || 0) + (deck.sideDeck.find(c => c.id === card.id)?.deckQuantity || 0);
+  
+    if (totalCopiesInAllDecks >= 3) {
+      showMessage("No puedes tener más de 3 copias de la misma carta.", "error");
+      return;
+    }
+  
+    if (totalCopiesInAllDecks >= card.quantity) {
+      showMessage(`No tienes más copias de ${card.name} en tu colección (${card.quantity} disponibles).`, "error");
+      return;
+    }
+  
+    const targetDeck = finalDeckType === 'main' ? deck.mainDeck : finalDeckType === 'extra' ? deck.extraDeck : deck.sideDeck;
+    const existingCard = targetDeck.find((c) => c.id === card.id);
+  
+    if (existingCard) {
+      existingCard.deckQuantity += 1;
+    } else {
+      const newDeckCard: DeckCard = { ...card, deckQuantity: 1 };
+      targetDeck.push(newDeckCard);
+    }
+    
+    setDeck({ ...deck });
+  };
 
   const showMessage = (message: string, type: "success" | "error" = "success") => {
     const messageEl = document.createElement("div")
@@ -175,23 +220,6 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
 
   const cardCounts = getTotalCards()
 
-  const DeckCardItem = ({ card, deckType }: { card: DeckCard; deckType: "main" | "extra" | "side" }) => (
-    <div 
-      key={card.id} 
-      className="relative group w-[6.66%] p-0.5" 
-      onMouseEnter={() => setHoveredCard(card)}
-      onClick={() => setSelectedCard(card)}
-    >
-      <div className="relative aspect-[2/3] w-full cursor-pointer group-hover:scale-150 group-hover:z-10 transition-transform duration-200 origin-bottom">
-        <Image src={card.image_url || "/card-back.png"} alt={card.name} fill className="object-cover" sizes="5vw" />
-        {card.deckQuantity > 1 && <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg">{card.deckQuantity}</div>}
-      </div>
-      <Button size="sm" variant="destructive" className="absolute top-0 left-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" onClick={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, deckType)}}>
-        <Minus className="h-3 w-3" />
-      </Button>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -231,7 +259,6 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
         <div 
           className="w-[55%] flex flex-col bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 overflow-y-auto"
           onMouseLeave={() => setHoveredCard(null)}
-          // Los eventos de drag/drop se manejan a nivel de cada sección
         >
           {/* ---- Main Deck ---- */}
           <div 
@@ -246,8 +273,16 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <Badge variant={cardCounts.main > 60 ? "destructive" : "secondary"} className="text-sm">{cardCounts.main}/60</Badge>
             </div>
             <div className="flex flex-wrap">
-              {deck.mainDeck.map((card) => <DeckCardItem key={`main-${card.id}`} card={card} deckType="main" />)}
-              {Array.from({ length: Math.max(0, 60 - deck.mainDeck.length) }).map((_, index) => (
+              {deck.mainDeck.map((card) => (
+                <DeckCardItem 
+                    key={`main-${card.id}`} 
+                    card={card} 
+                    onMouseEnter={() => setHoveredCard(card)}
+                    onClick={() => setSelectedCard(card)}
+                    onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "main") }}
+                />
+              ))}
+              {Array.from({ length: Math.max(0, 60 - cardCounts.main) }).map((_, index) => (
                 <div key={`empty-main-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
                     <div className="text-muted-foreground/40 text-xs">•</div>
@@ -272,8 +307,16 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <Badge variant={cardCounts.extra > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.extra}/15</Badge>
             </div>
             <div className="flex flex-wrap">
-              {deck.extraDeck.map((card) => <DeckCardItem key={`extra-${card.id}`} card={card} deckType="extra" />)}
-              {Array.from({ length: Math.max(0, 15 - deck.extraDeck.length) }).map((_, index) => (
+              {deck.extraDeck.map((card) => (
+                <DeckCardItem 
+                    key={`extra-${card.id}`} 
+                    card={card} 
+                    onMouseEnter={() => setHoveredCard(card)}
+                    onClick={() => setSelectedCard(card)}
+                    onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "extra") }}
+                />
+              ))}
+              {Array.from({ length: Math.max(0, 15 - cardCounts.extra) }).map((_, index) => (
                 <div key={`empty-extra-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
                     <div className="text-muted-foreground/40 text-xs">•</div>
@@ -298,8 +341,16 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <Badge variant={cardCounts.side > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.side}/15</Badge>
             </div>
             <div className="flex flex-wrap">
-              {deck.sideDeck.map((card) => <DeckCardItem key={`side-${card.id}`} card={card} deckType="side" />)}
-              {Array.from({ length: Math.max(0, 15 - deck.sideDeck.length) }).map((_, index) => (
+              {deck.sideDeck.map((card) => (
+                <DeckCardItem 
+                    key={`side-${card.id}`} 
+                    card={card} 
+                    onMouseEnter={() => setHoveredCard(card)}
+                    onClick={() => setSelectedCard(card)}
+                    onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "side") }}
+                />
+              ))}
+              {Array.from({ length: Math.max(0, 15 - cardCounts.side) }).map((_, index) => (
                 <div key={`empty-side-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
                     <div className="text-muted-foreground/40 text-xs">•</div>

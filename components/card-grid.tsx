@@ -31,44 +31,40 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
         <h3 className="text-lg font-semibold">Cartas ({cards.length})</h3>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3 pr-2">
+      <div className="grid grid-cols-5 md:grid-cols-8 gap-3 pr-2 pl-2 items-start">
         {cards.map((card) => (
-          <UICard
+          <div
             key={card.id}
             className={cn(
-              "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 border-0 bg-card/80 backdrop-blur-sm",
+              "relative cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 overflow-hidden group",
+              "bg-card/80 backdrop-blur-sm",
               selectedCard?.id === card.id && "ring-2 ring-primary shadow-lg scale-105",
             )}
-            onClick={() => onCardSelect(card)}
+            // Aquí se cambia onClick por onMouseEnter para actualizar al pasar el ratón
+            onMouseEnter={() => onCardSelect(card)}
           >
-            <CardContent className="p-2">
-              <div className="relative aspect-[2/3] w-full mb-2">
-                <FlippableCard
-                  src={card.image_url || "/card-back.png"}
-                  alt={card.name}
-                />
-                {card.quantity > 1 && (
-                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-medium z-10">
-                    x{card.quantity}
-                  </div>
-                )}
-              </div>
+            {/* La imagen ocupa todo el espacio del contenedor */}
+            <div className="aspect-[2/3] w-full">
+              <FlippableCard
+                src={card.image_url || "/card-back.png"}
+                alt={card.name}
+              />
+            </div>
 
-              <div className="space-y-1">
-                <h4 className="font-medium text-xs text-balance leading-tight line-clamp-2">{card.name}</h4>
-                
-                {card.card_type === "Monster" ? (
-                  <p className="text-xs text-muted-foreground">
-                    ATK: {card.atk ?? '?'} / DEF: {card.def ?? '?'}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {card.card_icon}
-                  </p>
-                )}
+            {card.quantity > 1 && (
+              <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-medium z-20">
+                x{card.quantity}
               </div>
-            </CardContent>
-          </UICard>
+            )}
+
+            {/* El nombre como capa superpuesta en la parte inferior */}
+            <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-black/60 backdrop-blur-sm z-10">
+              <h4 className="font-medium text-xs text-white text-center text-balance leading-tight line-clamp-2">
+                {card.name}
+              </h4>
+            </div>
+            
+          </div>
         ))}
       </div>
     </div>

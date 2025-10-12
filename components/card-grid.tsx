@@ -60,7 +60,7 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
               <div className="space-y-1">
                 <h4 className="font-medium text-xs text-balance leading-tight line-clamp-2">{card.name}</h4>
                 
-                {/* --- INICIO DE LA MODIFICACIÓN --- */}
+                {/* --- INICIO MODIFICACIÓN --- */}
                 {card.card_type === "Monster" ? (
                   <p className="text-xs text-muted-foreground">
                     ATK: {card.atk ?? '?'} / DEF: {card.def ?? '?'}

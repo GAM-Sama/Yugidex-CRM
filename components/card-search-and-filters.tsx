@@ -26,53 +26,13 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
   const cardTypes = ["Monster", "Spell", "Trap"]
 
   const monsterTypes = [
-    "Aqua",
-    "Beast",
-    "Beast-Warrior",
-    "Winged Beast",
-    "Divine-Beast",
-    "Cyberse",
-    "Fiend",
-    "Dinosaur",
-    "Dragon",
-    "Sea Serpent",
-    "Fish",
-    "Warrior",
-    "Fairy",
-    "Illusion",
-    "Insect",
-    "Spellcaster",
-    "Machine",
-    "Reptile",
-    "Rock",
-    "Thunder",
-    "Wyrm",
-    "Zombie",
-    "Pyro",
-    "Psychic",
-    "Creator God",
+    "Aqua", "Beast", "Beast-Warrior", "Winged Beast", "Divine-Beast", "Cyberse", "Fiend", "Dinosaur", "Dragon", "Sea Serpent", "Fish", "Warrior", "Fairy", "Illusion", "Insect", "Spellcaster", "Machine", "Reptile", "Rock", "Thunder", "Wyrm", "Zombie", "Pyro", "Psychic", "Creator God",
   ]
 
   const attributes = ["LIGHT", "DARK", "WATER", "FIRE", "EARTH", "WIND", "DIVINE"]
-
   const spellTrapIcons = ["Normal", "Field", "Equip", "Continuous", "Quick-Play", "Ritual", "Counter"]
-
   const subtypes = [
-    "Normal", // from classification
-    "Effect", // from classification
-    "Fusion",
-    "Ritual",
-    "Synchro",
-    "Xyz",
-    "Pendulum",
-    "Link",
-    "Tuner",
-    "Flip",
-    "Gemini",
-    "Spirit",
-    "Toon",
-    "Union",
-    "Token",
+    "Normal", "Effect", "Fusion", "Ritual", "Synchro", "Xyz", "Pendulum", "Link", "Tuner", "Flip", "Gemini", "Spirit", "Toon", "Union", "Token",
   ]
 
   const toggleArrayFilter = (key: keyof CardFilters, value: string) => {
@@ -123,7 +83,10 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
       {/* Search Bar */}
       <div className="flex gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          {/* --- INICIO DE LA CORRECCIÓN --- */}
+          {/* Cambiamos 'text-muted-foreground' por 'text-primary' */}
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary h-4 w-4 z-10" />
+          {/* --- FIN DE LA CORRECCIÓN --- */}
           <Input
             placeholder="Buscar cartas por nombre..."
             value={filters.search}

@@ -2,8 +2,8 @@
 
 import type { Card } from "@/types/card"
 import { Card as UICard, CardContent } from "@/components/ui/card"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface CardGridProps {
   cards: Card[]
@@ -43,12 +43,15 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
           >
             <CardContent className="p-2">
               <div className="relative aspect-[2/3] w-full mb-2">
-                <FlippableCard
+                <Image
                   src={card.image_url || "/card-back.png"}
                   alt={card.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                 />
                 {card.quantity > 1 && (
-                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-medium z-10">
+                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-medium">
                     x{card.quantity}
                   </div>
                 )}
@@ -57,6 +60,7 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
               <div className="space-y-1">
                 <h4 className="font-medium text-xs text-balance leading-tight line-clamp-2">{card.name}</h4>
                 
+                {/* --- INICIO MODIFICACIÓN --- */}
                 {card.card_type === "Monster" ? (
                   <p className="text-xs text-muted-foreground">
                     ATK: {card.atk ?? '?'} / DEF: {card.def ?? '?'}
@@ -66,6 +70,8 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
                     {card.card_icon}
                   </p>
                 )}
+                {/* --- FIN DE LA MODIFICACIÓN --- */}
+
               </div>
             </CardContent>
           </UICard>

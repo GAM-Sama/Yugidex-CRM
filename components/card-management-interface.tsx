@@ -40,21 +40,21 @@ export function CardManagementInterface({ initialCards }: CardManagementInterfac
   }, [initialCards, selectedCard]);
 
   const filteredCards = useMemo(() => {
+    // ... (Tu lógica de filtrado se queda exactamente igual)
     if (
-        filters.search === "" &&
-        filters.cardTypes.length === 0 &&
-        filters.attributes.length === 0 &&
-        filters.monsterTypes.length === 0 &&
-        filters.levels.length === 0 &&
-        filters.monsterClassifications.length === 0 &&
-        filters.spellTrapIcons.length === 0 &&
-        filters.subtypes.length === 0 &&
-        filters.minAtk === "" &&
-        filters.minDef === ""
+      filters.search === "" &&
+      filters.cardTypes.length === 0 &&
+      filters.attributes.length === 0 &&
+      filters.monsterTypes.length === 0 &&
+      filters.levels.length === 0 &&
+      filters.monsterClassifications.length === 0 &&
+      filters.spellTrapIcons.length === 0 &&
+      filters.subtypes.length === 0 &&
+      filters.minAtk === "" &&
+      filters.minDef === ""
     ) {
         return cards;
     }
-
     return cards.filter((card) => {
       const matchesSearch = card.name.toLowerCase().includes(filters.search.toLowerCase())
       const matchesType = filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
@@ -77,7 +77,7 @@ export function CardManagementInterface({ initialCards }: CardManagementInterfac
       const matchesSubtype =
         filters.subtypes.length === 0 ||
         filters.subtypes.some((filterSubtype) => {
-          if (filterSubtype === "Normal" || filterSubtype === "Effect") {
+          if (filterSubtype === "Normal" || "Effect") {
             return card.classification === filterSubtype
           }
           return card.subtype === filterSubtype
@@ -103,33 +103,34 @@ export function CardManagementInterface({ initialCards }: CardManagementInterfac
   }, [cards, filters])
 
   return (
-    <main className="container mx-auto px-6 py-8">
-      {/* --- INICIO DE LA CORRECCIÓN --- */}
-      
-      {/* 1. El título y el subtítulo ahora están fuera del div 'sticky' */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-balance mb-2">Gestión de Cartas</h1>
-        <p className="text-muted-foreground text-pretty">Explora y gestiona tu colección de cartas Yu-Gi-Oh!</p>
-      </div>
+    // --- INICIO DE LA REESTRUCTURACIÓN COMPLETA CON FLEXBOX ---
 
-      {/* 2. El div 'sticky' ahora solo contiene la barra de búsqueda y filtros */}
-      <div className="sticky top-16 bg-background/80 backdrop-blur-sm z-20 pt-4 pb-4 mb-6">
+    // 1. Contenedor principal que usa Flexbox en columna y ocupa el alto de la pantalla menos el Navbar (64px).
+    // 'gap-6' añade el espacio vertical que querías.
+    <main className="container mx-auto px-6 py-8 h-[calc(100vh-64px)] flex flex-col gap-6">
+      
+      {/* 2. Barra de Búsqueda (FIJA). 'flex-shrink-0' evita que se encoja. */}
+      <div className="flex-shrink-0">
         <CardSearchAndFilters filters={filters} onFiltersChange={setFilters} />
       </div>
 
-      {/* 3. El contenedor de las columnas principales tiene un margen superior para compensar */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* El 'top' del panel izquierdo se ajusta a la nueva altura del header 'sticky' */}
-        <div className="w-full lg:w-1/3 flex-shrink-0 sticky top-32 z-10">
+      {/* 3. Contenedor del contenido principal. Crece para ocupar el espacio restante ('flex-1') */}
+      {/* y usa Flexbox en fila. 'overflow-hidden' es CRUCIAL para que el scroll funcione bien. */}
+      <div className="flex-1 flex flex-row gap-8 overflow-hidden">
+        
+        {/* 4. Panel Izquierdo (FIJO). Ancho fijo y no se encoge. */}
+        <div className="w-full lg:w-96 flex-shrink-0">
           <DeckCardPreview card={selectedCard} />
         </div>
 
-        <div className="w-full lg:w-2/3">
+        {/* 5. Panel Derecho (SCROLLABLE). Crece para ocupar el espacio restante ('flex-1') */}
+        {/* y es el ÚNICO elemento con scroll vertical. */}
+        <div className="flex-1 overflow-y-auto pr-2">
           <CardGrid cards={filteredCards} selectedCard={selectedCard} onCardSelect={setSelectedCard} />
         </div>
       </div>
       
-      {/* --- FIN DE LA CORRECCIÓN --- */}
     </main>
+    // --- FIN DE LA REESTRUCTURACIÓN ---
   )
 }

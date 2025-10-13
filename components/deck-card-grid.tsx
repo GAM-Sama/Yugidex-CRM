@@ -3,8 +3,8 @@
 import type { Card } from "@/types/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface DeckCardGridProps {
   cards: Card[]
@@ -79,6 +79,7 @@ export function DeckCardGrid({
                     "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
                     selectedCard?.id === card.id && "bg-primary/10 ring-1 ring-primary",
                     !canAdd && "opacity-50 grayscale",
+                    "mx-1"
                   )}
                   onClick={() => onCardSelect(card)}
                   onMouseEnter={() => onCardHover?.(card)}
@@ -88,16 +89,14 @@ export function DeckCardGrid({
                   onDragEnd={onDragEnd}
                 >
                   {/* Card Image */}
-                  <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary/10 to-accent/10">
-                    <Image
+                  {/* ATENCIÓN: CAMBIOS APLICADOS AQUÍ */}
+                  <div className="relative w-12 aspect-[59/86] flex-shrink-0"> {/* <-- w-12 para el ancho, aspect-[59/86] para la proporción, quitado h-16 */}
+                    <FlippableCard
                       src={card.image_url || "/card-back.png"}
                       alt={card.name}
-                      fill
-                      className="object-cover"
-                      sizes="48px"
                     />
                     {totalCopiesInDeck > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                      <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg z-10">
                         {totalCopiesInDeck}
                       </div>
                     )}
@@ -108,8 +107,6 @@ export function DeckCardGrid({
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium truncate">{card.name}</h4>
-                        
-                        {/* --- INICIO DE LA MODIFICACIÓN --- */}
                         {card.card_type === "Monster" && card.atk !== null ? (
                           <div className="text-xs text-muted-foreground mt-1">
                             ATK: {card.atk} / DEF: {card.def}
@@ -119,12 +116,8 @@ export function DeckCardGrid({
                             {card.card_icon}
                           </div>
                         ) : null}
-                        {/* --- FIN DE LA MODIFICACIÓN --- */}
-                        
                         <div className="text-xs text-muted-foreground mt-1">Disponibles: {card.quantity}</div>
                       </div>
-
-                      {/* Add button */}
                       <Button
                         size="sm"
                         className={cn(
@@ -143,10 +136,9 @@ export function DeckCardGrid({
                       </Button>
                     </div>
                   </div>
-
                   {!canAdd && (
-                    <div className="absolute inset-0 bg-red-500/10 rounded flex items-center justify-center pointer-events-none">
-                      <div className="bg-red-500 text-white text-xs px-1 py-0.5 rounded font-bold">LÍMITE</div>
+                    <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center pointer-events-none">
+                      <div className="bg-red-500 text-white text-xs px-1 py-0.5 font-bold">LÍMITE</div>
                     </div>
                   )}
                 </div>
@@ -154,7 +146,7 @@ export function DeckCardGrid({
             })}
           </div>
         ) : (
-          // Vista de Grid Original (sin modificar)
+          // Vista de Grid (sin cambios, ya que aquí la proporción era correcta)
           <div className="grid grid-cols-4 gap-1.5">
             {cards.map((card) => {
               const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
@@ -164,7 +156,7 @@ export function DeckCardGrid({
                 <div key={card.id} className="relative group">
                   <div
                     className={cn(
-                      "relative aspect-[2/3] cursor-pointer transition-all duration-200 bg-gradient-to-br from-primary/10 to-accent/10 rounded overflow-hidden",
+                      "relative aspect-[2/3] cursor-pointer transition-all duration-200 bg-transparent",
                       selectedCard?.id === card.id && "ring-2 ring-primary",
                       !canAdd && "opacity-50 grayscale",
                     )}
@@ -175,30 +167,26 @@ export function DeckCardGrid({
                     onDragStart={() => canAdd && onDragStart?.(card)}
                     onDragEnd={onDragEnd}
                   >
-                    <Image
-                      src={card.image_url || "/card-back.png?height=300&width=200&query=Yu-Gi-Oh card back"}
+                    <FlippableCard
+                      src={card.image_url || "/card-back.png"}
                       alt={card.name}
-                      fill
-                      className="object-cover rounded"
-                      sizes="(max-width: 768px) 25vw, 15vw"
                     />
                     {card.quantity > 1 && (
-                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg z-10">
                         {card.quantity}
                       </div>
                     )}
                     {totalCopiesInDeck > 0 && (
-                      <div className="absolute bottom-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg">
+                      <div className="absolute bottom-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg z-10">
                         {totalCopiesInDeck}
                       </div>
                     )}
                     {!canAdd && (
-                      <div className="absolute inset-0 bg-red-500/20 rounded flex items-center justify-center">
-                        <div className="bg-red-500 text-white text-xs px-1 py-0.5 rounded font-bold">LÍMITE</div>
+                      <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                        <div className="bg-red-500 text-white text-xs px-1 py-0.5 font-bold">LÍMITE</div>
                       </div>
                     )}
                   </div>
-
                   <Button
                     size="sm"
                     className={cn(

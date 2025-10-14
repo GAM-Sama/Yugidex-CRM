@@ -1,16 +1,14 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useState, useTransition } from "react"
+import { updateUserProfile } from "@/app/profile/actions" // Importamos la Server Action
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import { Save, UserIcon } from "lucide-react"
 
@@ -30,45 +28,27 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ user, profile }: ProfileFormProps) {
+  // El estado de los campos ahora tiene sus propios `setters`
   const [firstName, setFirstName] = useState(profile?.first_name || "")
   const [lastName, setLastName] = useState(profile?.last_name || "")
   const [bio, setBio] = useState(profile?.bio || "")
   const [location, setLocation] = useState(profile?.location || "")
   const [website, setWebsite] = useState(profile?.website || "")
-  const [isLoading, setIsLoading] = useState(false)
+
+  const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
-  const router = useRouter()
-  const supabase = createClient()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleSubmit = (formData: FormData) => {
     setMessage(null)
-
-    try {
-      const { error } = await supabase.from("Users").upsert({
-        id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        bio,
-        location,
-        website,
-        updated_at: new Date().toISOString(),
-      })
-
-      if (error) throw error
-
-      setMessage({ type: "success", text: "Perfil actualizado correctamente" })
-      router.refresh()
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "Error al actualizar el perfil",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    startTransition(async () => {
+      const result = await updateUserProfile(formData)
+      if (result.error) {
+        setMessage({ type: "error", text: result.error })
+      }
+      if (result.success) {
+        setMessage({ type: "success", text: result.success })
+      }
+    })
   }
 
   const getUserInitials = () => {
@@ -105,13 +85,18 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
           <CardDescription>Actualiza tu información personal y preferencias</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* La etiqueta <form> ahora usa la server action */}
+          <form action={handleSubmit} className="space-y-6">
+            {/* Campo oculto para pasar el ID del usuario a la acción */}
+            <input type="hidden" name="id" value={user.id} />
+
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Nombre</Label>
                 <Input
                   id="firstName"
+                  name="firstName" // Añadido el atributo 'name'
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -123,6 +108,7 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
                 <Label htmlFor="lastName">Apellido</Label>
                 <Input
                   id="lastName"
+                  name="lastName" // Añadido el atributo 'name'
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -144,6 +130,7 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               <Label htmlFor="bio">Biografía</Label>
               <Textarea
                 id="bio"
+                name="bio" // Añadido el atributo 'name'
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 className="rounded-xl min-h-[100px]"
@@ -156,6 +143,7 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               <Label htmlFor="location">Ubicación</Label>
               <Input
                 id="location"
+                name="location" // Añadido el atributo 'name'
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -169,6 +157,7 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               <Label htmlFor="website">Sitio Web</Label>
               <Input
                 id="website"
+                name="website" // Añadido el atributo 'name'
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
@@ -194,9 +183,9 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
             <Button
               type="submit"
               className="w-full rounded-xl h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-              disabled={isLoading}
+              disabled={isPending}
             >
-              {isLoading ? (
+              {isPending ? (
                 "Guardando..."
               ) : (
                 <>
@@ -206,30 +195,6 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Account Stats */}
-      <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>Estadísticas de la Cuenta</CardTitle>
-          <CardDescription>Información sobre tu actividad en Yugidex CRM</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 rounded-xl bg-primary/5">
-              <div className="text-2xl font-bold text-primary">0</div>
-              <div className="text-sm text-muted-foreground">Cartas en colección</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-accent/5">
-              <div className="text-2xl font-bold text-accent">0</div>
-              <div className="text-sm text-muted-foreground">Sets completados</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-secondary/5">
-              <div className="text-2xl font-bold text-secondary-foreground">$0</div>
-              <div className="text-sm text-muted-foreground">Valor estimado</div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

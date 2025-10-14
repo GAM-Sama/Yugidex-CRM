@@ -11,8 +11,18 @@ export default async function ProfilePage() {
     redirect("/auth/login")
   }
 
-  // Fetch user profile
-  const { data: profile } = await supabase.from("Users").select("*").eq("id", data.user.id).single()
+  // --- INICIO DE LA MODIFICACIÓN ---
+  // Creamos un objeto 'profile' a partir de los metadatos del usuario.
+  // Ya no necesitamos consultar la tabla "Users".
+  const profile = {
+    id: data.user.id,
+    first_name: data.user.user_metadata?.first_name || "",
+    last_name: data.user.user_metadata?.last_name || "",
+    bio: data.user.user_metadata?.bio || "",
+    location: data.user.user_metadata?.location || "",
+    website: data.user.user_metadata?.website || "",
+  }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">

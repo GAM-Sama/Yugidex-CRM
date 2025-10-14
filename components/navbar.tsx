@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image" // <-- AÑADIDO: Import para el componente Image
 import type { User } from "@supabase/supabase-js"
 import { Moon, Sun, Settings, LogOut, UserIcon, BarChart3, CreditCard, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -59,40 +60,39 @@ export function Navbar({ user }: NavbarProps) {
   }
 
   const navigationItems = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: Home,
-    },
-    {
-      href: "/cards",
-      label: "Cartas",
-      icon: CreditCard,
-    },
-    {
-      href: "/decks",
-      label: "Gestión de Decks",
-      icon: BarChart3, // We'll use a different icon later
-    },
-    {
-      href: "/statistics",
-      label: "Estadísticas",
-      icon: BarChart3,
-    },
+    { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/cards", label: "Cartas", icon: CreditCard },
+    { href: "/decks", label: "Gestión de Decks", icon: BarChart3 },
+    { href: "/statistics", label: "Estadísticas", icon: BarChart3 },
   ]
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-6">
-        {/* Logo and Title */}
+        
+        {/* --- INICIO DE LA MODIFICACIÓN --- */}
         <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">Y</span>
-          </div>
+          {/* Logo para Light Mode (visible por defecto, oculto en dark) */}
+          <Image 
+            src="/logo_lm.png" 
+            alt="Yugidex Logo" 
+            width={32} 
+            height={32} 
+            className="dark:hidden"
+          />
+          {/* Logo para Dark Mode (oculto por defecto, visible en dark) */}
+          <Image 
+            src="/logo_dm.png" 
+            alt="Yugidex Logo" 
+            width={32} 
+            height={32} 
+            className="hidden dark:block"
+          />
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Yugidex CRM
           </h1>
         </Link>
+        {/* --- FIN DE LA MODIFICACIÓN --- */}
 
         <div className="hidden md:flex items-center space-x-1">
           {navigationItems.map((item) => {

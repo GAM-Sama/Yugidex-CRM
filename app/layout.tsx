@@ -10,24 +10,14 @@ export const metadata: Metadata = {
   description: "Sistema de gestión para tu colección de cartas Yu-Gi-Oh!",
   generator: "v0.app",
   
-  // --- INICIO DE LA MODIFICACIÓN ---
+  // --- INICIO DE LA CORRECCIÓN ---
+  // Simplificamos el objeto de iconos para apuntar directamente 
+  // a tu favicon.ico en la carpeta /public
   icons: {
-    // Icono para dispositivos Apple (pantalla de inicio)
-    apple: '/apple-touch-icon.png',
-    
-    // Iconos para navegadores modernos (diferentes tamaños)
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    ],
-    
-    // Icono de acceso directo para navegadores antiguos
+    icon: '/favicon.ico',
     shortcut: '/favicon.ico',
   },
-  
-  // Enlace al manifest para Android y PWA (si lo tienes)
-  manifest: '/site.webmanifest',
-  // --- FIN DE LA MODIFICACIÓN ---
+  // --- FIN DE LA CORRECCIÓN ---
 }
 
 export default function RootLayout({

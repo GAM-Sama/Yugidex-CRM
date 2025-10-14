@@ -12,28 +12,48 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import type { CardFilters } from "@/types/card"
-import { Search, Filter, X, Star, Square, Circle, Zap } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import type { CardFilters, SortBy, SortDirection } from "@/types/card"
+import { Search, Filter, X, Star, Square, Circle, Zap, ArrowUp, ArrowDown } from "lucide-react"
 
+// --- INICIO DE LA MODIFICACIÓN ---
 interface CardSearchAndFiltersProps {
   filters: CardFilters
   onFiltersChange: (filters: CardFilters) => void
+  sortBy: SortBy
+  sortDirection: SortDirection
+  onSortChange: (sortBy: SortBy) => void
 }
 
-export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAndFiltersProps) {
+const sortOptions: { value: SortBy; label: string }[] = [
+  { value: "name", label: "Nombre" },
+  { value: "card_type", label: "Tipo de Carta" },
+  { value: "atk", label: "Ataque" },
+  { value: "def", label: "Defensa" },
+  { value: "level", label: "Nivel/Rango" },
+]
+
+export function CardSearchAndFilters({
+  filters,
+  onFiltersChange,
+  sortBy,
+  sortDirection,
+  onSortChange,
+}: CardSearchAndFiltersProps) {
+  // --- FIN DE LA MODIFICACIÓN ---
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
+  // ... (el resto de tus constantes como cardTypes, monsterTypes, etc. no cambian)
   const cardTypes = ["Monster", "Spell", "Trap"]
-
-  const monsterTypes = [
-    "Aqua", "Beast", "Beast-Warrior", "Winged Beast", "Divine-Beast", "Cyberse", "Fiend", "Dinosaur", "Dragon", "Sea Serpent", "Fish", "Warrior", "Fairy", "Illusion", "Insect", "Spellcaster", "Machine", "Reptile", "Rock", "Thunder", "Wyrm", "Zombie", "Pyro", "Psychic", "Creator God",
-  ]
-
+  const monsterTypes = [ "Aqua", "Beast", "Beast-Warrior", "Winged Beast", "Divine-Beast", "Cyberse", "Fiend", "Dinosaur", "Dragon", "Sea Serpent", "Fish", "Warrior", "Fairy", "Illusion", "Insect", "Spellcaster", "Machine", "Reptile", "Rock", "Thunder", "Wyrm", "Zombie", "Pyro", "Psychic", "Creator God", ]
   const attributes = ["LIGHT", "DARK", "WATER", "FIRE", "EARTH", "WIND", "DIVINE"]
   const spellTrapIcons = ["Normal", "Field", "Equip", "Continuous", "Quick-Play", "Ritual", "Counter"]
-  const subtypes = [
-    "Normal", "Effect", "Fusion", "Ritual", "Synchro", "Xyz", "Pendulum", "Link", "Tuner", "Flip", "Gemini", "Spirit", "Toon", "Union", "Token",
-  ]
+  const subtypes = [ "Normal", "Effect", "Fusion", "Ritual", "Synchro", "Xyz", "Pendulum", "Link", "Tuner", "Flip", "Gemini", "Spirit", "Toon", "Union", "Token", ]
 
   const toggleArrayFilter = (key: keyof CardFilters, value: string) => {
     const currentArray = filters[key] as string[]
@@ -44,7 +64,7 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
     onFiltersChange({ ...filters, [key]: newArray })
   }
 
-  const updateFilter = (key: keyof CardFilters, value: string) => {
+  const updateFilter = (key: keyof CardFilters, value: string | undefined) => {
     onFiltersChange({ ...filters, [key]: value })
   }
 
@@ -74,19 +94,18 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
       filters.subtypes,
     ]
     const arrayCount = arrayFilters.reduce((count, arr) => count + arr.length, 0)
-    const otherFilters = [filters.minAtk, filters.minDef].filter((value) => value !== "").length
+    const otherFilters = [filters.minAtk, filters.minDef].filter((value) => value && value !== "").length
     return arrayCount + otherFilters
   }
 
+  const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || "Nombre"
+
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
       <div className="flex gap-4">
         <div className="relative flex-1">
-          {/* --- INICIO DE LA CORRECCIÓN --- */}
-          {/* Cambiamos 'text-muted-foreground' por 'text-primary' */}
+          {/* --- AÑADIDO text-primary PARA CAMBIAR EL COLOR DE LA LUPA --- */}
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary h-4 w-4 z-10" />
-          {/* --- FIN DE LA CORRECCIÓN --- */}
           <Input
             placeholder="Buscar cartas por nombre..."
             value={filters.search}
@@ -95,7 +114,38 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
           />
         </div>
 
-        {/* Filter Button */}
+        {/* --- INICIO DE LA MODIFICACIÓN: Botón de Ordenar --- */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="rounded-xl h-12 px-4 md:px-6 bg-card/80 backdrop-blur-sm border-0 shadow-lg flex-shrink-0"
+            >
+              {sortDirection === "asc" ? (
+                <ArrowUp className="h-4 w-4 mr-2 text-primary" />
+              ) : (
+                <ArrowDown className="h-4 w-4 mr-2 text-primary" />
+              )}
+              <span className="hidden md:inline">Ordenar por:</span>
+              <strong className="ml-1">{currentSortLabel}</strong>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {sortOptions.map((option) => (
+              <DropdownMenuItem key={option.value} onSelect={() => onSortChange(option.value)}>
+                {option.label}
+                {sortBy === option.value &&
+                  (sortDirection === "asc" ? (
+                    <ArrowUp className="ml-auto h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="ml-auto h-4 w-4" />
+                  ))}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {/* --- FIN DE LA MODIFICACIÓN --- */}
+
         <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <DialogTrigger asChild>
             <Button
@@ -103,7 +153,7 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
               className="rounded-xl h-12 px-6 bg-card/80 backdrop-blur-sm border-0 shadow-lg relative"
             >
               <Filter className="h-4 w-4 mr-2 text-primary" />
-              Menú de filtros
+              <span className="hidden md:inline">Filtros</span>
               {getActiveFiltersCount() > 0 && (
                 <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-primary">
                   {getActiveFiltersCount()}
@@ -113,6 +163,7 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
           </DialogTrigger>
 
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 text-white border-slate-700">
+            {/* ... (El contenido del diálogo de filtros no cambia) ... */}
             <DialogHeader className="flex flex-row items-center justify-between">
               <div>
                 <DialogTitle className="text-xl text-white">Menú de filtros</DialogTitle>
@@ -121,7 +172,6 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
                 </DialogDescription>
               </div>
             </DialogHeader>
-
             <div className="space-y-8 py-6">
               {/* Marco de carta */}
               <div className="space-y-4">
@@ -264,7 +314,6 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
                 </div>
               </div>
             </div>
-
             <div className="flex justify-between pt-4 border-t border-slate-700">
               <Button
                 variant="outline"
@@ -282,7 +331,6 @@ export function CardSearchAndFilters({ filters, onFiltersChange }: CardSearchAnd
         </Dialog>
       </div>
 
-      {/* Active Filters Display */}
       {getActiveFiltersCount() > 0 && (
         <div className="flex flex-wrap gap-2">
           {filters.cardTypes.map((type) => (

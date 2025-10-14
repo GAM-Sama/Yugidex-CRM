@@ -145,3 +145,38 @@
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(135, 135, 135, 0.6);
 }
+
+/* ===================================================================== */
+/* === Corrección de Estilos para Tooltip de Recharts (Modo Claro/Oscuro) === */
+/* ===================================================================== */
+
+/* Estilo base para el contenedor del tooltip */
+.recharts-default-tooltip {
+  background-color: var(--popover) !important; /* Usa el fondo para popovers/diálogos */
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo para el título dentro del tooltip (ej. "Nivel 4") */
+.recharts-tooltip-label {
+  color: var(--popover-foreground) !important; /* Usa el color principal del texto */
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+}
+
+/* Estilo para los elementos de la lista (ej. "count: 123") */
+.recharts-tooltip-item {
+  color: var(--muted-foreground) !important; /* Usa un color de texto más suave */
+}
+
+/* Forzamos el color del nombre del item (ej. "count") */
+.recharts-tooltip-item-name {
+  color: var(--muted-foreground) !important;
+}
+
+/* Forzamos el color del valor del item (ej. "123") */
+.recharts-tooltip-item-value {
+  color: var(--popover-foreground) !important;
+  font-weight: 600;
+}

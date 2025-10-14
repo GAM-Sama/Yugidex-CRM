@@ -284,7 +284,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="type" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
                 <Bar dataKey="count" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
@@ -305,7 +305,10 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ type, percent }) => `${type} ${(percent * 100).toFixed(0)}%`}
+                  label={({ type, percent }) => {
+                    const percentage = percent ? (percent * 100).toFixed(0) : 0;
+                    return `${type} ${percentage}%`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="count"
@@ -314,7 +317,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -332,7 +335,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="monsterType" angle={-45} textAnchor="end" height={80} interval={0} />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {monsterTypeChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -359,7 +362,10 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ attribute, percent }) => `${attribute} ${(percent * 100).toFixed(0)}%`}
+                    label={({ attribute, percent }) => {
+                      const percentage = percent ? (percent * 100).toFixed(0) : 0;
+                      return `${attribute} ${percentage}%`;
+                    }}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"
@@ -368,7 +374,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -389,7 +395,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="level" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
                 <Line type="monotone" dataKey="count" stroke="#f7d200" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
@@ -410,7 +416,7 @@ export function StatisticsCharts({ cardStats }: StatisticsChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="level" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} />
                 <Line type="monotone" dataKey="count" stroke="#f7d200" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

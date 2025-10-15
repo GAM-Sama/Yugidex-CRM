@@ -31,7 +31,7 @@ Yugidex CRM es un sistema de gestión de relaciones con clientes desarrollado pa
 
 ## Requisitos del Sistema
 
-- Node.js (versión 16 o superior)
+- Node.js (versión 15 o superior)
 - npm (versión 9 o superior) o yarn
 - Navegador web moderno (Chrome, Firefox, Safari, Edge)
 - Cuenta de Supabase

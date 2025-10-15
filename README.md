@@ -84,25 +84,25 @@ yugidex-crm/
 
 ## Capturas de Pantalla
 
-###Dashboard
+**Dashboard**
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/dashboard.PNG)
 
-###Analitics
+**Analitics**
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/analitics.PNG)
 
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/analitics-2.PNG)
 
-###Gestion de decks
+**Gestion de decks**
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/gestion-deck-1.PNG)
 
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/gestion-deck-2.PNG)
 
-###Ver cartas
+**Ver cartas**
 ![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/ver-cartas.PNG)
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más información.
+Este es un proyecto personal sin licencia de código abierto. Todos los derechos están reservados.
 
 ## Contacto
 

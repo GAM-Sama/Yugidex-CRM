@@ -2,7 +2,7 @@
 
 import type { Card } from "@/types/card"
 import { Card as UICard, CardContent } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { cn, getCardGlowStyle } from "@/lib/utils" // 1. Importamos la utilidad
 import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface CardGridProps {
@@ -35,19 +35,18 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
         {cards.map((card) => (
           <div
             key={card.id}
+            style={getCardGlowStyle(card)} // 2. Aplicamos el brillo como un estilo
             className={cn(
               "relative cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 overflow-hidden group",
               "bg-card/80 backdrop-blur-sm",
               selectedCard?.id === card.id && "ring-2 ring-primary shadow-lg scale-105",
             )}
-            // Aquí se cambia onClick por onMouseEnter para actualizar al pasar el ratón
             onMouseEnter={() => onCardSelect(card)}
           >
-            {/* La imagen ocupa todo el espacio del contenedor */}
             <div className="aspect-[2/3] w-full">
               <FlippableCard
-                src={card.image_url || "/card-back.png"}
-                alt={card.name}
+                // 3. Pasamos el objeto 'card' completo
+                card={card}
               />
             </div>
 
@@ -57,7 +56,6 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
               </div>
             )}
 
-            {/* El nombre como capa superpuesta en la parte inferior */}
             <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-black/60 backdrop-blur-sm z-10">
               <h4 className="font-medium text-xs text-white text-center text-balance leading-tight line-clamp-2">
                 {card.name}

@@ -1,10 +1,11 @@
-// components/deck-card-preview.tsx
 "use client"
 
 import type { Card } from "@/types/card"
 import { Badge } from "@/components/ui/badge"
 import React, { useState, useEffect } from "react";
 import { FlippableCard } from "@/components/ui/flippable-card";
+// 1. Importamos las utilidades
+import { cn, getCardGlowStyle } from "@/lib/utils"; 
 
 interface DeckCardPreviewProps {
   card: Card | null
@@ -20,10 +21,8 @@ const parseDescription = (description: string) => {
 };
 
 export function DeckCardPreview({ card }: DeckCardPreviewProps) {
-  // Estado para controlar el volteo manual de la carta
   const [isManuallyFlipped, setIsManuallyFlipped] = useState(true);
 
-  // Cada vez que la carta seleccionada cambia, la mostramos por delante
   useEffect(() => {
     setIsManuallyFlipped(true);
   }, [card]);
@@ -71,18 +70,18 @@ export function DeckCardPreview({ card }: DeckCardPreviewProps) {
         </div>
       </div>
 
-      {/* --- INICIO DE LA MODIFICACIÓN --- */}
       <div 
+        // 2. Aplicamos el brillo dinámico al contenedor
+        style={getCardGlowStyle(card)}
         className="relative aspect-[59/86] w-full max-w-[200px] mx-auto mb-3 flex-shrink-0 cursor-pointer"
-        onClick={() => setIsManuallyFlipped(prev => !prev)} // <-- Añadimos el handler de clic aquí
+        onClick={() => setIsManuallyFlipped(prev => !prev)}
       >
         <FlippableCard
-          src={card.image_url || "/card-back.png"}
-          alt={card.name}
-          isFlipped={isManuallyFlipped} // <-- Le pasamos el estado para que obedezca
+          // 3. Pasamos el objeto 'card' completo
+          card={card}
+          isFlipped={isManuallyFlipped}
         />
       </div>
-      {/* --- FIN DE LA MODIFICACIÓN --- */}
 
       <div className="space-y-3 flex-1 overflow-y-auto text-xs pr-2">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">

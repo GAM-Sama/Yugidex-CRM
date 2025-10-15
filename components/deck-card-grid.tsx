@@ -3,7 +3,7 @@
 import type { Card } from "@/types/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getCardGlowStyle } from "@/lib/utils"
 import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface DeckCardGridProps {
@@ -75,8 +75,12 @@ export function DeckCardGrid({
               return (
                 <div
                   key={card.id}
+                  style={getCardGlowStyle(card)}
                   className={cn(
-                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
+                    // --- INICIO DE LA MODIFICACIÓN ---
+                    // Añadimos 'group' aquí para que toda la fila active el hover
+                    "group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
+                    // --- FIN DE LA MODIFICACIÓN ---
                     selectedCard?.id === card.id && "bg-primary/10 ring-1 ring-primary",
                     !canAdd && "opacity-50 grayscale",
                     "mx-1"
@@ -88,13 +92,8 @@ export function DeckCardGrid({
                   onDragStart={() => canAdd && onDragStart?.(card)}
                   onDragEnd={onDragEnd}
                 >
-                  {/* Card Image */}
-                  {/* ATENCIÓN: CAMBIOS APLICADOS AQUÍ */}
-                  <div className="relative w-12 aspect-[59/86] flex-shrink-0"> {/* <-- w-12 para el ancho, aspect-[59/86] para la proporción, quitado h-16 */}
-                    <FlippableCard
-                      src={card.image_url || "/card-back.png"}
-                      alt={card.name}
-                    />
+                  <div className="relative w-12 aspect-[59/86] flex-shrink-0">
+                    <FlippableCard card={card} />
                     {totalCopiesInDeck > 0 && (
                       <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow-lg z-10">
                         {totalCopiesInDeck}
@@ -102,7 +101,6 @@ export function DeckCardGrid({
                     )}
                   </div>
 
-                  {/* Card Data */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -146,14 +144,13 @@ export function DeckCardGrid({
             })}
           </div>
         ) : (
-          // Vista de Grid (sin cambios, ya que aquí la proporción era correcta)
           <div className="grid grid-cols-4 gap-1.5">
             {cards.map((card) => {
               const totalCopiesInDeck = getTotalCopiesInDeck(card.id)
               const canAdd = canAddCard(card)
 
               return (
-                <div key={card.id} className="relative group">
+                <div key={card.id} style={getCardGlowStyle(card)} className="relative group">
                   <div
                     className={cn(
                       "relative aspect-[2/3] cursor-pointer transition-all duration-200 bg-transparent",
@@ -167,10 +164,7 @@ export function DeckCardGrid({
                     onDragStart={() => canAdd && onDragStart?.(card)}
                     onDragEnd={onDragEnd}
                   >
-                    <FlippableCard
-                      src={card.image_url || "/card-back.png"}
-                      alt={card.name}
-                    />
+                    <FlippableCard card={card} />
                     {card.quantity > 1 && (
                       <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg z-10">
                         {card.quantity}

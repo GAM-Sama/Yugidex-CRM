@@ -25,13 +25,21 @@ export interface Card {
 
 export interface CardFilters {
   search: string
-  cardTypes: string[] // Changed from cardType to cardTypes array
-  attributes: string[] // Changed from attribute to attributes array
-  monsterTypes: string[] // Changed from monsterType to monsterTypes array
+  cardTypes: string[]
+  attributes: string[]
+  monsterTypes: string[]
   levels: string[]
-  monsterClassifications: string[] // Para Normal, Effect, etc. - usa campo classification
-  spellTrapIcons: string[] // Para tipos de mágicas/trampas - usa campo card_icon
-  subtypes: string[] // Para subtipos de monstruos - usa campo subtype y classification
+  monsterClassifications: string[]
+  spellTrapIcons: string[]
+  subtypes: string[]
   minAtk?: string
   minDef?: string
 }
+
+// --- INICIO DE LA MODIFICACIÓN ---
+// Criterio por el que se ordena
+export type SortBy = "name" | "atk" | "def" | "level" | "card_type"
+
+// Dirección de la ordenación
+export type SortDirection = "asc" | "desc"
+// --- FIN DE LA MODIFICACIÓN ---

@@ -6,13 +6,11 @@ import { Navbar } from "@/components/navbar";
 import { CardManagementInterface } from "@/components/card-management-interface";
 import type { Card } from "@/types/card";
 
-interface CardsPageProps {
-  searchParams: {
-    page?: string;
-  };
-}
+// Define cuántas cartas se cargarán cada vez
+const CARDS_PER_PAGE = 48;
 
-export default async function CardsPage({ searchParams }: CardsPageProps) {
+// La página ya no necesita los searchParams para la paginación
+export default async function CardsPage() {
   const supabase = await createClient();
 
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -20,11 +18,13 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
     redirect("/auth/login");
   }
 
-  const currentPage = Number.parseInt(searchParams.page || '1', 10);
-  const cardsPerPage = 48;
-  const from = (currentPage - 1) * cardsPerPage;
-  const to = from + cardsPerPage - 1;
-
+  // 1. Obtenemos el número total de cartas que tiene el usuario
+  const { count: totalCards } = await supabase
+    .from("user_cards")
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+    
+  // 2. Obtenemos solo la primera página de cartas para la carga inicial
   const { data: userCardsData, error: cardsError } = await supabase
     .from("user_cards")
     .select(`
@@ -34,16 +34,10 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       Cartas(*)
     `)
     .eq('user_id', user.id)
-    .range(from, to);
+    .range(0, CARDS_PER_PAGE - 1); // Carga del 0 al 47
 
-  const { count: totalCards } = await supabase
-    .from("user_cards")
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-    
-  const totalPages = Math.ceil((totalCards || 0) / cardsPerPage);
-
-  const userCards: Card[] = userCardsData?.map((userCard: any) => ({
+  // El mapeo de datos se mantiene igual
+  const initialCards: Card[] = userCardsData?.map((userCard: any) => ({
     id: userCard.Cartas.ID_Carta?.toString() || userCard.Cartas.id?.toString(),
     user_id: user.id,
     name: userCard.Cartas.Nombre || "",
@@ -62,7 +56,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
     condition: userCard.condition,
     price: userCard.Cartas.price,
     card_icon: userCard.Cartas["Icono Carta"],
-    subtype: userCard.Cartas.Subtipo, // <-- ¡LA CORRECCIÓN CLAVE!
+    subtype: userCard.Cartas.Subtipo,
     classification: userCard.Cartas.Clasificacion,
     created_at: userCard.created_at || new Date().toISOString(),
     updated_at: userCard.updated_at || new Date().toISOString(),
@@ -71,7 +65,8 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   return (
     <div className="bg-gradient-to-br from-background via-primary/5 to-accent/5">
       <Navbar user={user} />
-      <CardManagementInterface initialCards={userCards} />
+      {/* 3. Pasamos las cartas iniciales Y el total al componente cliente */}
+      <CardManagementInterface initialCards={initialCards} totalCards={totalCards || 0} />
     </div>
   );
 }

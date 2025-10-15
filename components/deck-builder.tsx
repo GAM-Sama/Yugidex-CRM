@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { CardSearchAndFilters } from "@/components/card-search-and-filters"
 import { DeckCardPreview } from "@/components/deck-card-preview"
 import { DeckCardGrid } from "@/components/deck-card-grid"
-import type { Card as CardType, CardFilters } from "@/types/card"
+import type { Card as CardType, CardFilters, SortBy, SortDirection } from "@/types/card"
 import type { Deck } from "@/types/deck"
 import { DeckService } from "@/lib/deck-service.client"
 import { ArrowLeft, Save, Download, Share, Minus } from "lucide-react"
@@ -34,11 +34,31 @@ interface LocalDeck {
   sideDeck: DeckCard[]
 }
 
-// --- ✅ SOLUCIÓN: COMPONENTE DEFINIDO FUERA ---
+// --- Helper para la ordenación por tipo ---
+const getCardSortValue = (card: CardType): string => {
+  const typeOrder: Record<string, number> = { Monster: 1, Spell: 2, Trap: 3 }
+  const monsterSubtypeOrder: Record<string, number> = {
+    Fusion: 1, Synchro: 2, Xyz: 3, Link: 4, Pendulum: 5, Ritual: 6, Effect: 7, Normal: 8,
+    Tuner: 9, Flip: 10, Gemini: 11, Spirit: 12, Toon: 13, Union: 14,
+  }
+  const spellTrapOrder: Record<string, number> = {
+    Normal: 1, Continuous: 2, Equip: 3, "Quick-Play": 4, Field: 5, Ritual: 6, Counter: 7,
+  }
+  const primary = typeOrder[card.card_type] ?? 99
+  let secondary = 99
+  if (card.card_type === "Monster") {
+    if (card.subtype && monsterSubtypeOrder[card.subtype]) secondary = monsterSubtypeOrder[card.subtype]
+    else if (card.classification && monsterSubtypeOrder[card.classification]) secondary = monsterSubtypeOrder[card.classification]
+  } else if (card.card_icon && spellTrapOrder[card.card_icon]) {
+    secondary = spellTrapOrder[card.card_icon]
+  }
+  return `${primary.toString().padStart(2, "0")}-${secondary.toString().padStart(2, "0")}`
+}
+
 const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove }: { card: DeckCard; onMouseEnter: () => void; onClick: () => void; onRemove: (e: React.MouseEvent) => void }) => (
-    <div 
-      key={card.id} 
-      className="relative group w-[6.66%] p-0.5" 
+    <div
+      key={card.id}
+      className="relative group w-[6.66%] p-0.5"
       onMouseEnter={onMouseEnter}
       onClick={onClick}
     >
@@ -50,17 +70,17 @@ const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove }: { card: DeckCar
           </div>
         )}
       </div>
-      <Button 
-        size="sm" 
-        variant="destructive" 
-        className="absolute top-0 left-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" 
+      <Button
+        size="sm"
+        variant="destructive"
+        className="absolute top-0 left-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20"
         onClick={onRemove}
       >
         <Minus className="h-3 w-3" />
       </Button>
     </div>
   );
-  
+
 export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderProps) {
   const router = useRouter()
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
@@ -72,6 +92,18 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
   const [isSaving, setIsSaving] = useState(false)
   const [filters, setFilters] = useState<CardFilters>({ search: "", cardTypes: [], attributes: [], monsterTypes: [], levels: [], monsterClassifications: [], spellTrapIcons: [], subtypes: [], minAtk: "", minDef: "" })
   const [dragCounter, setDragCounter] = useState(0);
+
+  const [sortBy, setSortBy] = useState<SortBy>("name")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
+
+  const handleSortChange = (newSortBy: SortBy) => {
+    if (sortBy === newSortBy) {
+      setSortDirection((prevDirection) => (prevDirection === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(newSortBy)
+      setSortDirection("asc")
+    }
+  }
 
   useEffect(() => {
     loadDeckFromData(initialDeck)
@@ -95,8 +127,8 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
     setDeck(localDeck)
   }
 
-  const filteredCards = useMemo(() => {
-    return availableCards.filter((card) => {
+  const processedCards = useMemo(() => {
+    const filtered = availableCards.filter((card) => {
       const matchesSearch = card.name.toLowerCase().includes(filters.search.toLowerCase())
       const matchesType = filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
       const matchesAttribute = filters.attributes.length === 0 || (card.attribute && filters.attributes.includes(card.attribute))
@@ -109,37 +141,61 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
       const matchesMinDef = !filters.minDef || (card.def !== null && card.def !== undefined && card.def >= Number.parseInt(filters.minDef))
       return (matchesSearch && matchesType && matchesAttribute && matchesMonsterType && matchesLevel && matchesMonsterClassification && matchesSpellTrapIcon && matchesSubtype && matchesMinAtk && matchesMinDef)
     })
-  }, [availableCards, filters])
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === "name") {
+        return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      }
+      if (sortBy === "card_type") {
+        const valA = getCardSortValue(a)
+        const valB = getCardSortValue(b)
+        return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      }
+      let valA: number, valB: number
+      if (sortBy === "atk") {
+        valA = a.atk ?? -1
+        valB = b.atk ?? -1
+      } else if (sortBy === "def") {
+        valA = a.def ?? -1
+        valB = b.def ?? -1
+      } else { // level
+        valA = a.level_rank_link ?? -1
+        valB = b.level_rank_link ?? -1
+      }
+      return sortDirection === "asc" ? valA - valB : valB - valA
+    })
+    return sorted
+  }, [availableCards, filters, sortBy, sortDirection])
 
   const addCardToDeck = (card: CardType, intendedDeck: "main" | "extra" | "side" = "main") => {
     if (!deck) return;
-  
+
     let finalDeckType: "main" | "extra" | "side";
     const extraDeckTypes = ["fusion", "synchro", "xyz", "link"];
     const cardSubtypeLower = card.subtype?.toLowerCase();
     const isExtraDeckCard = card.card_type === "Monster" && cardSubtypeLower && extraDeckTypes.includes(cardSubtypeLower);
-  
+
     if (isExtraDeckCard) {
       finalDeckType = intendedDeck === 'main' ? 'extra' : intendedDeck;
     } else {
       finalDeckType = intendedDeck === 'extra' ? 'main' : intendedDeck;
     }
-  
+
     const totalCopiesInAllDecks = (deck.mainDeck.find(c => c.id === card.id)?.deckQuantity || 0) + (deck.extraDeck.find(c => c.id === card.id)?.deckQuantity || 0) + (deck.sideDeck.find(c => c.id === card.id)?.deckQuantity || 0);
-  
+
     if (totalCopiesInAllDecks >= 3) {
       showMessage("No puedes tener más de 3 copias de la misma carta.", "error");
       return;
     }
-  
+
     if (totalCopiesInAllDecks >= card.quantity) {
       showMessage(`No tienes más copias de ${card.name} en tu colección (${card.quantity} disponibles).`, "error");
       return;
     }
-  
+
     const targetDeck = finalDeckType === 'main' ? deck.mainDeck : finalDeckType === 'extra' ? deck.extraDeck : deck.sideDeck;
     const existingCard = targetDeck.find((c) => c.id === card.id);
-  
+
     if (existingCard) {
       existingCard.deckQuantity += 1;
     } else {
@@ -207,6 +263,37 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
   const getTotalCards = () => { if (!deck) return { main: 0, extra: 0, side: 0 }; return { main: deck.mainDeck.reduce((sum, card) => sum + card.deckQuantity, 0), extra: deck.extraDeck.reduce((sum, card) => sum + card.deckQuantity, 0), side: deck.sideDeck.reduce((sum, card) => sum + card.deckQuantity, 0) } }
   const saveDeck = async () => { if (!deck || isSaving) return; setIsSaving(true); try { const convertToDbFormat = (deckCards: DeckCard[]) => { return deckCards.map((card) => ({ card_id: card.id, quantity: card.deckQuantity, })) }; await DeckService.updateDeck(deck.id, { name: deck.name, description: deck.description, main_deck: convertToDbFormat(deck.mainDeck), extra_deck: convertToDbFormat(deck.extraDeck), side_deck: convertToDbFormat(deck.sideDeck), }); showMessage("Deck guardado correctamente", "success") } catch (error) { showMessage("Error al guardar el deck", "error") } finally { setIsSaving(false) } }
 
+  // --- INICIO DE LA MODIFICACIÓN: Ordenación de los decks internos ---
+  const sortDeck = (deckToSort: DeckCard[]) => {
+    return [...deckToSort].sort((a, b) => {
+      if (sortBy === "name") {
+        return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+      }
+      if (sortBy === "card_type") {
+        const valA = getCardSortValue(a);
+        const valB = getCardSortValue(b);
+        return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      let valA: number, valB: number;
+      if (sortBy === "atk") {
+        valA = a.atk ?? -1;
+        valB = b.atk ?? -1;
+      } else if (sortBy === "def") {
+        valA = a.def ?? -1;
+        valB = b.def ?? -1;
+      } else { // level
+        valA = a.level_rank_link ?? -1;
+        valB = b.level_rank_link ?? -1;
+      }
+      return sortDirection === "asc" ? valA - valB : valB - valA;
+    });
+  }
+
+  const sortedMainDeck = useMemo(() => deck ? sortDeck(deck.mainDeck) : [], [deck, sortBy, sortDirection]);
+  const sortedExtraDeck = useMemo(() => deck ? sortDeck(deck.extraDeck) : [], [deck, sortBy, sortDirection]);
+  const sortedSideDeck = useMemo(() => deck ? sortDeck(deck.sideDeck) : [], [deck, sortBy, sortDirection]);
+  // --- FIN DE LA MODIFICACIÓN ---
+
   if (!deck) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -246,8 +333,13 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <CardSearchAndFilters filters={filters} onFiltersChange={setFilters} />
+      <CardSearchAndFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={handleSortChange}
+      />
 
       <div className="flex gap-4 h-[calc(100vh-230px)] min-h-[600px] w-full">
         {/* Left Panel */}
@@ -256,12 +348,12 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
         </div>
 
         {/* Center Panel */}
-        <div 
+        <div
           className="w-[55%] flex flex-col bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 overflow-y-auto"
           onMouseLeave={() => setHoveredCard(null)}
         >
           {/* ---- Main Deck ---- */}
-          <div 
+          <div
             className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'main' && "bg-primary/10 ring-2 ring-primary")}
             onDragEnter={(e) => handleDragEnterZone(e, "main")}
             onDragLeave={handleDragLeaveZone}
@@ -272,16 +364,18 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <h3 className="text-lg font-semibold">Main Deck</h3>
               <Badge variant={cardCounts.main > 60 ? "destructive" : "secondary"} className="text-sm">{cardCounts.main}/60</Badge>
             </div>
+            {/* --- INICIO DE LA MODIFICACIÓN: Usar lista ordenada --- */}
             <div className="flex flex-wrap">
-              {deck.mainDeck.map((card) => (
-                <DeckCardItem 
-                    key={`main-${card.id}`} 
-                    card={card} 
+              {sortedMainDeck.map((card) => (
+                <DeckCardItem
+                    key={`main-${card.id}`}
+                    card={card}
                     onMouseEnter={() => setHoveredCard(card)}
                     onClick={() => setSelectedCard(card)}
                     onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "main") }}
                 />
               ))}
+            {/* --- FIN DE LA MODIFICACIÓN --- */}
               {Array.from({ length: Math.max(0, 60 - cardCounts.main) }).map((_, index) => (
                 <div key={`empty-main-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
@@ -295,7 +389,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
           <hr className="border-border/50 my-2" />
 
           {/* ---- Extra Deck ---- */}
-          <div 
+          <div
             className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'extra' && "bg-primary/10 ring-2 ring-primary")}
             onDragEnter={(e) => handleDragEnterZone(e, "extra")}
             onDragLeave={handleDragLeaveZone}
@@ -306,16 +400,18 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <h3 className="text-lg font-semibold">Extra Deck</h3>
               <Badge variant={cardCounts.extra > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.extra}/15</Badge>
             </div>
+            {/* --- INICIO DE LA MODIFICACIÓN: Usar lista ordenada --- */}
             <div className="flex flex-wrap">
-              {deck.extraDeck.map((card) => (
-                <DeckCardItem 
-                    key={`extra-${card.id}`} 
-                    card={card} 
+              {sortedExtraDeck.map((card) => (
+                <DeckCardItem
+                    key={`extra-${card.id}`}
+                    card={card}
                     onMouseEnter={() => setHoveredCard(card)}
                     onClick={() => setSelectedCard(card)}
                     onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "extra") }}
                 />
               ))}
+            {/* --- FIN DE LA MODIFICACIÓN --- */}
               {Array.from({ length: Math.max(0, 15 - cardCounts.extra) }).map((_, index) => (
                 <div key={`empty-extra-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
@@ -329,7 +425,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
           <hr className="border-border/50 my-2" />
           
           {/* ---- Side Deck ---- */}
-          <div 
+          <div
             className={cn("rounded p-2 transition-colors", dragOverTarget === 'side' && "bg-primary/10 ring-2 ring-primary")}
             onDragEnter={(e) => handleDragEnterZone(e, "side")}
             onDragLeave={handleDragLeaveZone}
@@ -340,16 +436,18 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
               <h3 className="text-lg font-semibold">Side Deck</h3>
               <Badge variant={cardCounts.side > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.side}/15</Badge>
             </div>
+            {/* --- INICIO DE LA MODIFICACIÓN: Usar lista ordenada --- */}
             <div className="flex flex-wrap">
-              {deck.sideDeck.map((card) => (
-                <DeckCardItem 
-                    key={`side-${card.id}`} 
-                    card={card} 
+              {sortedSideDeck.map((card) => (
+                <DeckCardItem
+                    key={`side-${card.id}`}
+                    card={card}
                     onMouseEnter={() => setHoveredCard(card)}
                     onClick={() => setSelectedCard(card)}
                     onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "side") }}
                 />
               ))}
+            {/* --- FIN DE LA MODIFICACIÓN --- */}
               {Array.from({ length: Math.max(0, 15 - cardCounts.side) }).map((_, index) => (
                 <div key={`empty-side-${index}`} className="w-[6.66%] p-0.5">
                   <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
@@ -364,7 +462,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
         {/* Right Panel */}
         <div className="w-[25%] flex flex-col overflow-hidden">
           <DeckCardGrid
-            cards={filteredCards}
+            cards={processedCards}
             selectedCard={selectedCard}
             onCardSelect={setSelectedCard}
             onCardHover={setHoveredCard}

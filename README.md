@@ -31,7 +31,7 @@ Yugidex CRM es un sistema de gestión de relaciones con clientes desarrollado pa
 
 ## Requisitos del Sistema
 
-- Node.js (versión 16 o superior)
+- Node.js (versión 15 o superior)
 - npm (versión 9 o superior) o yarn
 - Navegador web moderno (Chrome, Firefox, Safari, Edge)
 - Cuenta de Supabase
@@ -84,11 +84,25 @@ yugidex-crm/
 
 ## Capturas de Pantalla
 
-[Incluir capturas de pantalla relevantes de la aplicación]
+**Dashboard**
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/dashboard.PNG)
+
+**Analitics**
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/analitics.PNG)
+
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/analitics-2.PNG)
+
+**Gestion de decks**
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/gestion-deck-1.PNG)
+
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/gestion-deck-2.PNG)
+
+**Ver cartas**
+![\[Incluir capturas de pantalla relevantes de la aplicación\]](https://github.com/GAM-Sama/Yugidex-CRM/blob/main/public/images/ver-cartas.PNG)
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más información.
+Este es un proyecto personal sin licencia de código abierto. Todos los derechos están reservados.
 
 ## Contacto
 

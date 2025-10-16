@@ -4,7 +4,6 @@ import type { Card } from "@/types/card"
 import { Badge } from "@/components/ui/badge"
 import React, { useState, useEffect } from "react";
 import { FlippableCard } from "@/components/ui/flippable-card";
-// 1. Importamos las utilidades
 import { cn, getCardGlowStyle } from "@/lib/utils"; 
 
 interface DeckCardPreviewProps {
@@ -59,7 +58,9 @@ export function DeckCardPreview({ card }: DeckCardPreviewProps) {
   }
 
   return (
+    // ESTAS CLASES SON CLAVE: h-full hace que ocupe todo el alto, y flex-col organiza el contenido verticalmente
     <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 h-full flex flex-col">
+      {/* SECCIÓN FIJA: Título y Badges. flex-shrink-0 evita que se encoja */}
       <div className="mb-2 flex-shrink-0">
         <h2 className="text-md font-bold text-balance leading-tight mb-2">{card.name}</h2>
         <div className="flex flex-wrap gap-1">
@@ -70,19 +71,19 @@ export function DeckCardPreview({ card }: DeckCardPreviewProps) {
         </div>
       </div>
 
+      {/* SECCIÓN FIJA: Imagen de la carta. flex-shrink-0 evita que se encoja */}
       <div 
-        // 2. Aplicamos el brillo dinámico al contenedor
         style={getCardGlowStyle(card)}
         className="relative aspect-[59/86] w-full max-w-[200px] mx-auto mb-3 flex-shrink-0 cursor-pointer"
         onClick={() => setIsManuallyFlipped(prev => !prev)}
       >
         <FlippableCard
-          // 3. Pasamos el objeto 'card' completo
           card={card}
           isFlipped={isManuallyFlipped}
         />
       </div>
 
+      {/* SECCIÓN CON SCROLL: flex-1 hace que ocupe el resto del espacio y overflow-y-auto añade el scroll si es necesario */}
       <div className="space-y-3 flex-1 overflow-y-auto text-xs pr-2">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             {card.monster_type && (

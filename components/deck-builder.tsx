@@ -357,9 +357,10 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
   const cardCounts = getTotalCards()
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    // Contenedor principal ahora es una columna flex que ocupa toda la pantalla y gestiona el scroll
+    <div className="h-screen flex flex-col p-4 space-y-4">
+      {/* Header - Se encogerá para no ocupar espacio innecesario */}
+      <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => router.push("/decks")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -384,143 +385,156 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
           </Button>
         </div>
       </div>
+      
+      {/* Contenedor del contenido principal - Crecerá para ocupar el espacio restante y evitará desbordamiento */}
+      <div className="flex gap-4 flex-1 min-h-0">
 
-      <CardSearchAndFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        sortBy={sortBy}
-        sortDirection={sortDirection}
-        onSortChange={handleSortChange}
-      />
-
-      <div className="flex gap-4 h-[calc(100vh-230px)] min-h-[600px] w-full">
-        {/* Left Panel */}
-        <div className="w-[20%] flex flex-col overflow-hidden">
+        {/* Panel Izquierdo */}
+        <div className="w-[22%]">
           <DeckCardPreview card={hoveredCard || selectedCard} />
         </div>
 
-        {/* Center Panel */}
-        <div 
-          className="w-[55%] flex flex-col bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 overflow-y-auto"
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          {/* ---- Main Deck ---- */}
-          <div 
-            className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'main' && "bg-primary/10 ring-2 ring-primary")}
-            onDragEnter={(e) => handleDragEnterZone(e, "main")}
-            onDragLeave={handleDragLeaveZone}
-            onDragOver={allowDrop}
-            onDrop={(e) => handleDropZone(e, "main")}
-          >
-            <div className="flex items-center justify-between mb-1 flex-shrink-0">
-              <h3 className="text-lg font-semibold">Main Deck</h3>
-              <Badge variant={cardCounts.main > 60 ? "destructive" : "secondary"} className="text-sm">{cardCounts.main}/60</Badge>
-            </div>
-            <div className="flex flex-wrap">
-              {sortedMainDeck.map((card) => (
-                <DeckCardItem 
-                  key={`main-${card.id}`} 
-                  card={card} 
-                  onMouseEnter={() => setHoveredCard(card)}
-                  onClick={() => setSelectedCard(card)}
-                  onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "main") }}
-                  onDragStart={(e) => handleDragStart(e, card, "main")}
-                />
-              ))}
-              {Array.from({ length: Math.max(0, 60 - cardCounts.main) }).map((_, index) => (
-                <div key={`empty-main-${index}`} className="w-[6.66%] p-0.5">
-                  <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
-                    <div className="text-muted-foreground/40 text-xs">•</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <hr className="border-border/50 my-2" />
-
-          {/* ---- Extra Deck ---- */}
-          <div 
-            className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'extra' && "bg-primary/10 ring-2 ring-primary")}
-            onDragEnter={(e) => handleDragEnterZone(e, "extra")}
-            onDragLeave={handleDragLeaveZone}
-            onDragOver={allowDrop}
-            onDrop={(e) => handleDropZone(e, "extra")}
-          >
-            <div className="flex items-center justify-between mb-1 flex-shrink-0">
-              <h3 className="text-lg font-semibold">Extra Deck</h3>
-              <Badge variant={cardCounts.extra > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.extra}/15</Badge>
-            </div>
-            <div className="flex flex-wrap">
-              {sortedExtraDeck.map((card) => (
-                <DeckCardItem 
-                  key={`extra-${card.id}`} 
-                  card={card} 
-                  onMouseEnter={() => setHoveredCard(card)}
-                  onClick={() => setSelectedCard(card)}
-                  onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "extra") }}
-                  onDragStart={(e) => handleDragStart(e, card, "extra")}
-                />
-              ))}
-              {Array.from({ length: Math.max(0, 15 - cardCounts.extra) }).map((_, index) => (
-                <div key={`empty-extra-${index}`} className="w-[6.66%] p-0.5">
-                  <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
-                    <div className="text-muted-foreground/40 text-xs">•</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <hr className="border-border/50 my-2" />
-          
-          {/* ---- Side Deck ---- */}
-          <div 
-            className={cn("rounded p-2 transition-colors", dragOverTarget === 'side' && "bg-primary/10 ring-2 ring-primary")}
-            onDragEnter={(e) => handleDragEnterZone(e, "side")}
-            onDragLeave={handleDragLeaveZone}
-            onDragOver={allowDrop}
-            onDrop={(e) => handleDropZone(e, "side")}
-          >
-            <div className="flex items-center justify-between mb-1 flex-shrink-0">
-              <h3 className="text-lg font-semibold">Side Deck</h3>
-              <Badge variant={cardCounts.side > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.side}/15</Badge>
-            </div>
-            <div className="flex flex-wrap">
-              {sortedSideDeck.map((card) => (
-                <DeckCardItem 
-                  key={`side-${card.id}`} 
-                  card={card} 
-                  onMouseEnter={() => setHoveredCard(card)}
-                  onClick={() => setSelectedCard(card)}
-                  onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "side") }}
-                  onDragStart={(e) => handleDragStart(e, card, "side")}
-                />
-              ))}
-              {Array.from({ length: Math.max(0, 15 - cardCounts.side) }).map((_, index) => (
-                <div key={`empty-side-${index}`} className="w-[6.66%] p-0.5">
-                  <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
-                    <div className="text-muted-foreground/40 text-xs">•</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Panel Central y Derecho */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
         
-        {/* Right Panel */}
-        <div className="w-[25%] flex flex-col overflow-hidden">
-          <DeckCardGrid
-            cards={processedCards}
-            selectedCard={selectedCard}
-            onCardSelect={setSelectedCard}
-            onCardHover={setHoveredCard}
-            onCardAdd={addCardToDeck}
-            onDragStart={(e, card) => handleDragStart(e, card, 'list')}
-            onDragEnd={handleDragEnd}
-            deck={deck}
-            isListView={true}
-          />
+          <div className="flex-shrink-0">
+            <CardSearchAndFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={handleSortChange}
+            />
+          </div>
+          
+          {/* Este contenedor alinea los dos paneles y les permite gestionar su propio scroll */}
+          <div className="flex gap-4 w-full flex-1 min-h-0">
+            
+            {/* Contenedor de Mazos - Gestiona su propio scroll */}
+            <div 
+              className="w-[70%] flex flex-col bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-3 overflow-y-auto"
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              {/* ---- Main Deck ---- */}
+              <div 
+                className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'main' && "bg-primary/10 ring-2 ring-primary")}
+                onDragEnter={(e) => handleDragEnterZone(e, "main")}
+                onDragLeave={handleDragLeaveZone}
+                onDragOver={allowDrop}
+                onDrop={(e) => handleDropZone(e, "main")}
+              >
+                <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                  <h3 className="text-lg font-semibold">Main Deck</h3>
+                  <Badge variant={cardCounts.main > 60 ? "destructive" : "secondary"} className="text-sm">{cardCounts.main}/60</Badge>
+                </div>
+                <div className="flex flex-wrap">
+                  {sortedMainDeck.map((card) => (
+                    <DeckCardItem 
+                      key={`main-${card.id}`} 
+                      card={card} 
+                      onMouseEnter={() => setHoveredCard(card)}
+                      onClick={() => setSelectedCard(card)}
+                      onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "main") }}
+                      onDragStart={(e) => handleDragStart(e, card, "main")}
+                    />
+                  ))}
+                  {Array.from({ length: Math.max(0, 60 - cardCounts.main) }).map((_, index) => (
+                    <div key={`empty-main-${index}`} className="w-[6.66%] p-0.5">
+                      <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
+                        <div className="text-muted-foreground/40 text-xs">•</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <hr className="border-border/50 my-2" />
+
+              {/* ---- Extra Deck ---- */}
+              <div 
+                className={cn("mb-4 rounded p-2 transition-colors", dragOverTarget === 'extra' && "bg-primary/10 ring-2 ring-primary")}
+                onDragEnter={(e) => handleDragEnterZone(e, "extra")}
+                onDragLeave={handleDragLeaveZone}
+                onDragOver={allowDrop}
+                onDrop={(e) => handleDropZone(e, "extra")}
+              >
+                <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                  <h3 className="text-lg font-semibold">Extra Deck</h3>
+                  <Badge variant={cardCounts.extra > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.extra}/15</Badge>
+                </div>
+                <div className="flex flex-wrap">
+                  {sortedExtraDeck.map((card) => (
+                    <DeckCardItem 
+                      key={`extra-${card.id}`} 
+                      card={card} 
+                      onMouseEnter={() => setHoveredCard(card)}
+                      onClick={() => setSelectedCard(card)}
+                      onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "extra") }}
+                      onDragStart={(e) => handleDragStart(e, card, "extra")}
+                    />
+                  ))}
+                  {Array.from({ length: Math.max(0, 15 - cardCounts.extra) }).map((_, index) => (
+                    <div key={`empty-extra-${index}`} className="w-[6.66%] p-0.5">
+                      <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
+                        <div className="text-muted-foreground/40 text-xs">•</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <hr className="border-border/50 my-2" />
+              
+              {/* ---- Side Deck ---- */}
+              <div 
+                className={cn("rounded p-2 transition-colors", dragOverTarget === 'side' && "bg-primary/10 ring-2 ring-primary")}
+                onDragEnter={(e) => handleDragEnterZone(e, "side")}
+                onDragLeave={handleDragLeaveZone}
+                onDragOver={allowDrop}
+                onDrop={(e) => handleDropZone(e, "side")}
+              >
+                <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                  <h3 className="text-lg font-semibold">Side Deck</h3>
+                  <Badge variant={cardCounts.side > 15 ? "destructive" : "secondary"} className="text-sm">{cardCounts.side}/15</Badge>
+                </div>
+                <div className="flex flex-wrap">
+                  {sortedSideDeck.map((card) => (
+                    <DeckCardItem 
+                      key={`side-${card.id}`} 
+                      card={card} 
+                      onMouseEnter={() => setHoveredCard(card)}
+                      onClick={() => setSelectedCard(card)}
+                      onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "side") }}
+                      onDragStart={(e) => handleDragStart(e, card, "side")}
+                    />
+                  ))}
+                  {Array.from({ length: Math.max(0, 15 - cardCounts.side) }).map((_, index) => (
+                    <div key={`empty-side-${index}`} className="w-[6.66%] p-0.5">
+                      <div className="aspect-[2/3] w-full border border-dashed border-muted-foreground/20 rounded flex items-center justify-center">
+                        <div className="text-muted-foreground/40 text-xs">•</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Lista de Cartas Disponibles */}
+            <div className="w-[30%] flex flex-col">
+              <DeckCardGrid
+                cards={processedCards}
+                selectedCard={selectedCard}
+                onCardSelect={setSelectedCard}
+                onCardHover={setHoveredCard}
+                onCardAdd={addCardToDeck}
+                onDragStart={(e, card) => handleDragStart(e, card, 'list')}
+                onDragEnd={handleDragEnd}
+                deck={deck}
+                isListView={true}
+              />
+            </div>
+
+          </div>
         </div>
       </div>
     </div>

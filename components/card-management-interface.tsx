@@ -24,17 +24,12 @@ const getCardSortValue = (card: Card): string => {
   return `${primary.toString().padStart(2, "0")}-${secondary.toString().padStart(2, "0")}`
 }
 
-// --- INICIO DE LA CORRECCIÓN ---
-// Añadimos 'totalCards' a la definición de las props
 interface CardManagementInterfaceProps {
   initialCards: Card[]
   totalCards: number
 }
 
-// Y la recibimos en la función del componente
 export function CardManagementInterface({ initialCards, totalCards }: CardManagementInterfaceProps) {
-// --- FIN DE LA CORRECCIÓN ---
-
   // --- Estados para el scroll infinito ---
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [page, setPage] = useState(2)
@@ -119,22 +114,32 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
   }, [cards, filters, sortBy, sortDirection])
 
   return (
-    <main className="container mx-auto px-6 py-8 h-[calc(100vh-64px)] flex flex-col gap-6">
-      <div className="flex-shrink-0">
-        <CardSearchAndFilters 
-          filters={filters} 
-          onFiltersChange={setFilters}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onSortChange={handleSortChange}
-        />
+    // 1. Contenedor principal: Cambiamos a flex-row para crear dos columnas.
+    <main className="container mx-auto px-6 py-8 h-[calc(100vh-64px)] flex flex-row gap-8">
+      
+      {/* 2. Columna Izquierda (FIJA): Panel de la carta. Ocupa toda la altura. */}
+      <div className="w-full lg:w-96 flex-shrink-0">
+        <DeckCardPreview card={selectedCard} />
       </div>
-      <div className="flex-1 flex flex-row gap-8 overflow-hidden">
-        <div className="w-full lg:w-96 flex-shrink-0">
-          <DeckCardPreview card={selectedCard} />
+
+      {/* 3. Columna Derecha: Contendrá la búsqueda y la parrilla de cartas. */}
+      <div className="flex-1 flex flex-col gap-6 min-w-0"> {/* min-w-0 evita que el contenido se desborde */}
+        
+        {/* Barra de búsqueda (FIJA en la parte superior de la columna derecha) */}
+        <div className="flex-shrink-0">
+          <CardSearchAndFilters 
+            filters={filters} 
+            onFiltersChange={setFilters}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortChange={handleSortChange}
+          />
         </div>
-        <div className="flex-1 flex flex-col overflow-y-auto pr-2">
+        
+        {/* 4. Contenedor de cartas (ÚNICA PARTE CON SCROLL) */}
+        <div className="flex-1 overflow-y-auto pr-2">
           <CardGrid cards={processedCards} selectedCard={selectedCard} onCardSelect={setSelectedCard} />
+          
           {/* Elemento que se observará para cargar más cartas */}
           <div ref={loaderRef} className="flex justify-center items-center py-8">
             {isLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}

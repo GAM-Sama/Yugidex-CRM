@@ -10,9 +10,9 @@ import { DeckCardGrid } from "@/components/deck-card-grid"
 import type { Card as CardType, CardFilters, SortBy, SortDirection } from "@/types/card"
 import type { Deck } from "@/types/deck"
 import { DeckService } from "@/lib/deck-service.client"
-import { ArrowLeft, Save, Download, Share, Minus } from "lucide-react"
+import { ArrowLeft, Save, Download, Trash2, Minus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { cn, getCardGlowStyle } from "@/lib/utils" // 1. Importamos la función del brillo
+import { cn, getCardGlowStyle } from "@/lib/utils"
 import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface DeckBuilderProps {
@@ -34,7 +34,11 @@ interface LocalDeck {
   sideDeck: DeckCard[]
 }
 
-// --- Helper para la ordenación por tipo ---
+interface DraggedCardInfo {
+  card: CardType
+  source: "main" | "extra" | "side" | "list"
+}
+
 const getCardSortValue = (card: CardType): string => {
   const typeOrder: Record<string, number> = { Monster: 1, Spell: 2, Trap: 3 }
   const monsterSubtypeOrder: Record<string, number> = {
@@ -55,17 +59,17 @@ const getCardSortValue = (card: CardType): string => {
   return `${primary.toString().padStart(2, "0")}-${secondary.toString().padStart(2, "0")}`
 }
 
-const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove }: { card: DeckCard; onMouseEnter: () => void; onClick: () => void; onRemove: (e: React.MouseEvent) => void }) => (
+const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove, onDragStart }: { card: DeckCard; onMouseEnter: () => void; onClick: () => void; onRemove: (e: React.MouseEvent) => void; onDragStart: (e: React.DragEvent) => void }) => (
     <div
       key={card.id}
-      // 2. Aplicamos el estilo de brillo al contenedor de la carta
       style={getCardGlowStyle(card)}
       className="relative group w-[6.66%] p-0.5"
       onMouseEnter={onMouseEnter}
       onClick={onClick}
+      draggable={true}
+      onDragStart={onDragStart}
     >
       <div className="relative aspect-[2/3] w-full cursor-pointer group-hover:scale-150 group-hover:z-10 transition-transform duration-200 origin-bottom">
-        {/* 3. Pasamos el objeto 'card' completo a FlippableCard */}
         <FlippableCard card={card} />
         {card.deckQuantity > 1 && (
           <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg z-10">
@@ -82,20 +86,18 @@ const DeckCardItem = ({ card, onMouseEnter, onClick, onRemove }: { card: DeckCar
         <Minus className="h-3 w-3" />
       </Button>
     </div>
-  );
+);
 
 export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderProps) {
   const router = useRouter()
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
   const [hoveredCard, setHoveredCard] = useState<CardType | null>(null)
   const [deck, setDeck] = useState<LocalDeck | null>(null)
-  const [availableCards, setAvailableCards] = useState<CardType[]>(initialCards)
-  const [draggedCard, setDraggedCard] = useState<CardType | null>(null)
+  const [draggedCard, setDraggedCard] = useState<DraggedCardInfo | null>(null)
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [filters, setFilters] = useState<CardFilters>({ search: "", cardTypes: [], attributes: [], monsterTypes: [], levels: [], monsterClassifications: [], spellTrapIcons: [], subtypes: [], minAtk: "", minDef: "" })
   const [dragCounter, setDragCounter] = useState(0);
-
   const [sortBy, setSortBy] = useState<SortBy>("name")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
@@ -113,13 +115,13 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
     if (initialCards.length > 0) {
       setSelectedCard(initialCards[0])
     }
-  }, [initialDeck, initialCards, availableCards]) // Añadido availableCards a las dependencias
+  }, [initialDeck, initialCards])
 
   const loadDeckFromData = async (deckData: Deck) => {
     const convertDeckCards = async (deckCards: { card_id: string; quantity: number }[]): Promise<DeckCard[]> => {
       const result: DeckCard[] = []
       for (const deckCard of deckCards) {
-        const card = availableCards.find((c) => c.id === deckCard.card_id)
+        const card = initialCards.find((c) => c.id === deckCard.card_id)
         if (card) {
           result.push({ ...card, deckQuantity: deckCard.quantity })
         }
@@ -131,7 +133,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
   }
 
   const processedCards = useMemo(() => {
-    const filtered = availableCards.filter((card) => {
+    const filtered = initialCards.filter((card) => {
       const matchesSearch = card.name.toLowerCase().includes(filters.search.toLowerCase())
       const matchesType = filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
       const matchesAttribute = filters.attributes.length === 0 || (card.attribute && filters.attributes.includes(card.attribute))
@@ -168,7 +170,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
       return sortDirection === "asc" ? valA - valB : valB - valA
     })
     return sorted
-  }, [availableCards, filters, sortBy, sortDirection])
+  }, [initialCards, filters, sortBy, sortDirection])
 
   const addCardToDeck = (card: CardType, intendedDeck: "main" | "extra" | "side" = "main") => {
     if (!deck) return;
@@ -228,8 +230,46 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
     setDeck({ ...deck })
   }
 
-  const handleDragStart = (card: CardType) => { setDraggedCard(card) }
-  const handleDragEnd = () => { setDraggedCard(null); setDragOverTarget(null); setDragCounter(0); }
+  const handleClearDeck = () => {
+    if (!deck) return;
+    const confirmed = window.confirm(
+      "¿Estás seguro de que quieres vaciar el Main, Extra y Side Deck? Esta acción no se puede deshacer."
+    );
+    if (confirmed) {
+      setDeck({
+        ...deck,
+        mainDeck: [],
+        extraDeck: [],
+        sideDeck: [],
+      });
+      showMessage("Deck vaciado correctamente.", "success");
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, card: CardType, source: DraggedCardInfo["source"]) => {
+    const dragImage = new Image();
+    dragImage.src = card.image_url || "/card-back.png";
+    dragImage.style.position = "absolute";
+    dragImage.style.top = "-1000px";
+    dragImage.style.width = "86px";
+    dragImage.style.height = "125px";
+    dragImage.style.borderRadius = "4px";
+    document.body.appendChild(dragImage);
+
+    e.dataTransfer.setDragImage(dragImage, 43, 62.5);
+    
+    setDraggedCard({ card, source });
+
+    setTimeout(() => {
+        document.body.removeChild(dragImage);
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCard(null);
+    setDragOverTarget(null);
+    setDragCounter(0);
+  };
 
   const handleDragEnterZone = (e: React.DragEvent, target: string) => {
     e.preventDefault();
@@ -248,23 +288,44 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
     });
   };
 
-  const handleDropZone = (e: React.DragEvent, deckType: "main" | "extra" | "side") => {
+  const handleDropZone = (e: React.DragEvent, dropTarget: "main" | "extra" | "side") => {
     e.preventDefault();
     if (draggedCard) {
-        const dropTargetDeck = dragOverTarget as "main" | "extra" | "side" | null;
-        if (dropTargetDeck) {
-            addCardToDeck(draggedCard, dropTargetDeck);
-        }
+      const { card, source } = draggedCard;
+      if (source === 'list') {
+        addCardToDeck(card, dropTarget);
+      } 
+      else if (source !== dropTarget) {
+        removeCardFromDeck(card.id, source);
+        addCardToDeck(card, dropTarget);
+      }
     }
-    setDraggedCard(null);
-    setDragOverTarget(null);
-    setDragCounter(0);
+    handleDragEnd();
   };
 
   const allowDrop = (e: React.DragEvent) => { e.preventDefault(); };
 
   const getTotalCards = () => { if (!deck) return { main: 0, extra: 0, side: 0 }; return { main: deck.mainDeck.reduce((sum, card) => sum + card.deckQuantity, 0), extra: deck.extraDeck.reduce((sum, card) => sum + card.deckQuantity, 0), side: deck.sideDeck.reduce((sum, card) => sum + card.deckQuantity, 0) } }
-  const saveDeck = async () => { if (!deck || isSaving) return; setIsSaving(true); try { const convertToDbFormat = (deckCards: DeckCard[]) => { return deckCards.map((card) => ({ card_id: card.id, quantity: card.deckQuantity, })) }; await DeckService.updateDeck(deck.id, { name: deck.name, description: deck.description, main_deck: convertToDbFormat(deck.mainDeck), extra_deck: convertToDbFormat(deck.extraDeck), side_deck: convertToDbFormat(deck.sideDeck), }); showMessage("Deck guardado correctamente", "success") } catch (error) { showMessage("Error al guardar el deck", "error") } finally { setIsSaving(false) } }
+  
+  const saveDeck = async () => { 
+    if (!deck || isSaving) return; 
+    setIsSaving(true); 
+    try { 
+      const convertToDbFormat = (deckCards: DeckCard[]) => { return deckCards.map((card) => ({ card_id: card.id, quantity: card.deckQuantity, })) }; 
+      await DeckService.updateDeck(deck.id, { 
+        name: deck.name, 
+        description: deck.description, 
+        main_deck: convertToDbFormat(deck.mainDeck), 
+        extra_deck: convertToDbFormat(deck.extraDeck), 
+        side_deck: convertToDbFormat(deck.sideDeck), 
+      }); 
+      showMessage("Deck guardado correctamente", "success") 
+    } catch (error) { 
+      showMessage("Error al guardar el deck", "error") 
+    } finally { 
+      setIsSaving(false) 
+    } 
+  }
 
   const sortDeck = (deckToSort: DeckCard[]) => {
     return [...deckToSort].sort((a, b) => {
@@ -317,7 +378,10 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
             {isSaving ? "Guardando..." : "Guardar"}
           </Button>
           <Button variant="outline"><Download className="h-4 w-4 mr-2" />Exportar</Button>
-          <Button variant="outline"><Share className="h-4 w-4 mr-2" />Compartir</Button>
+          <Button variant="destructive" onClick={handleClearDeck}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Vaciar Deck
+          </Button>
         </div>
       </div>
 
@@ -360,6 +424,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
                   onMouseEnter={() => setHoveredCard(card)}
                   onClick={() => setSelectedCard(card)}
                   onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "main") }}
+                  onDragStart={(e) => handleDragStart(e, card, "main")}
                 />
               ))}
               {Array.from({ length: Math.max(0, 60 - cardCounts.main) }).map((_, index) => (
@@ -394,6 +459,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
                   onMouseEnter={() => setHoveredCard(card)}
                   onClick={() => setSelectedCard(card)}
                   onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "extra") }}
+                  onDragStart={(e) => handleDragStart(e, card, "extra")}
                 />
               ))}
               {Array.from({ length: Math.max(0, 15 - cardCounts.extra) }).map((_, index) => (
@@ -428,6 +494,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
                   onMouseEnter={() => setHoveredCard(card)}
                   onClick={() => setSelectedCard(card)}
                   onRemove={(e) => { e.stopPropagation(); removeCardFromDeck(card.id, "side") }}
+                  onDragStart={(e) => handleDragStart(e, card, "side")}
                 />
               ))}
               {Array.from({ length: Math.max(0, 15 - cardCounts.side) }).map((_, index) => (
@@ -449,7 +516,7 @@ export function DeckBuilder({ deckId, initialCards, initialDeck }: DeckBuilderPr
             onCardSelect={setSelectedCard}
             onCardHover={setHoveredCard}
             onCardAdd={addCardToDeck}
-            onDragStart={handleDragStart}
+            onDragStart={(e, card) => handleDragStart(e, card, 'list')}
             onDragEnd={handleDragEnd}
             deck={deck}
             isListView={true}

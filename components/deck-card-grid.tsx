@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react" // Importa React para usar React.DragEvent
 import type { Card } from "@/types/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -11,7 +12,8 @@ interface DeckCardGridProps {
   selectedCard: Card | null
   onCardSelect: (card: Card) => void
   onCardAdd: (card: Card) => void
-  onDragStart?: (card: Card) => void
+  // --- CORRECCIÓN: La firma de onDragStart ahora incluye React.DragEvent ---
+  onDragStart?: (e: React.DragEvent, card: Card) => void
   onDragEnd?: () => void
   onCardHover?: (card: Card | null) => void
   deck?: {
@@ -77,10 +79,7 @@ export function DeckCardGrid({
                   key={card.id}
                   style={getCardGlowStyle(card)}
                   className={cn(
-                    // --- INICIO DE LA MODIFICACIÓN ---
-                    // Añadimos 'group' aquí para que toda la fila active el hover
                     "group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/50",
-                    // --- FIN DE LA MODIFICACIÓN ---
                     selectedCard?.id === card.id && "bg-primary/10 ring-1 ring-primary",
                     !canAdd && "opacity-50 grayscale",
                     "mx-1"
@@ -89,7 +88,7 @@ export function DeckCardGrid({
                   onMouseEnter={() => onCardHover?.(card)}
                   onMouseLeave={() => onCardHover?.(null)}
                   draggable={canAdd}
-                  onDragStart={() => canAdd && onDragStart?.(card)}
+                  onDragStart={(e) => canAdd && onDragStart?.(e, card)}
                   onDragEnd={onDragEnd}
                 >
                   <div className="relative w-12 aspect-[59/86] flex-shrink-0">
@@ -161,7 +160,7 @@ export function DeckCardGrid({
                     onMouseEnter={() => onCardHover?.(card)}
                     onMouseLeave={() => onCardHover?.(null)}
                     draggable={canAdd}
-                    onDragStart={() => canAdd && onDragStart?.(card)}
+                    onDragStart={(e) => canAdd && onDragStart?.(e, card)}
                     onDragEnd={onDragEnd}
                   >
                     <FlippableCard card={card} />

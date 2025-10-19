@@ -2,7 +2,11 @@
 
 import type React from "react"
 import { useState, useTransition } from "react"
-import { updateUserProfile } from "@/app/profile/actions" // Importamos la Server Action
+// --- INICIO CAMBIOS ---
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client" // Importamos el CLIENTE
+// --- FIN CAMBIOS ---
+import { updateUserProfile } from "@/app/profile/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,10 +16,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { User } from "@supabase/supabase-js"
 import { Save, UserIcon } from "lucide-react"
 
+// (La interfaz 'Profile' debe estar como la definimos antes, con 'username')
 interface Profile {
   id: string
-  first_name?: string
-  last_name?: string
+  username?: string
   avatar_url?: string
   bio?: string
   location?: string
@@ -28,9 +32,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ user, profile }: ProfileFormProps) {
-  // El estado de los campos ahora tiene sus propios `setters`
-  const [firstName, setFirstName] = useState(profile?.first_name || "")
-  const [lastName, setLastName] = useState(profile?.last_name || "")
+  const [username, setUsername] = useState(profile?.username || "")
   const [bio, setBio] = useState(profile?.bio || "")
   const [location, setLocation] = useState(profile?.location || "")
   const [website, setWebsite] = useState(profile?.website || "")
@@ -38,22 +40,41 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
+  // --- INICIO CAMBIOS ---
+  const router = useRouter()
+  const supabase = createClient() // Creamos la instancia del cliente
+  // --- FIN CAMBIOS ---
+
   const handleSubmit = (formData: FormData) => {
     setMessage(null)
     startTransition(async () => {
       const result = await updateUserProfile(formData)
+
       if (result.error) {
         setMessage({ type: "error", text: result.error })
       }
+
       if (result.success) {
         setMessage({ type: "success", text: result.success })
+
+        // --- INICIO CAMBIOS ---
+        // ¡ESTA ES LA PARTE CLAVE!
+        // 1. Forzamos al cliente a refrescar su sesión (cookie)
+        //    para obtener el nuevo user_metadata.
+        await supabase.auth.refreshSession()
+
+        // 2. Le decimos a Next.js que refresque la ruta actual.
+        //    Esto re-ejecutará el Server Component 'ProfilePage'
+        //    que ahora leerá el NUEVO cookie.
+        router.refresh()
+        // --- FIN CAMBIOS ---
       }
     })
   }
 
   const getUserInitials = () => {
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase()
+    if (username) {
+      return username[0].toUpperCase()
     }
     return user.email?.[0]?.toUpperCase() || "U"
   }
@@ -70,12 +91,12 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               </AvatarFallback>
             </Avatar>
           </div>
-          <CardTitle className="text-2xl">{firstName && lastName ? `${firstName} ${lastName}` : "Tu Perfil"}</CardTitle>
+          <CardTitle className="text-2xl">{username ? username : "Tu Perfil"}</CardTitle>
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Profile Form */}
+      {/* Profile Form (el resto del formulario no cambia) */}
       <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -85,52 +106,33 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
           <CardDescription>Actualiza tu información personal y preferencias</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* La etiqueta <form> ahora usa la server action */}
           <form action={handleSubmit} className="space-y-6">
-            {/* Campo oculto para pasar el ID del usuario a la acción */}
             <input type="hidden" name="id" value={user.id} />
 
-            {/* Name Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Nombre</Label>
-                <Input
-                  id="firstName"
-                  name="firstName" // Añadido el atributo 'name'
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="rounded-xl"
-                  placeholder="Tu nombre"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Apellido</Label>
-                <Input
-                  id="lastName"
-                  name="lastName" // Añadido el atributo 'name'
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="rounded-xl"
-                  placeholder="Tu apellido"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Nombre de Usuario</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="rounded-xl"
+                placeholder="Tu nombre de usuario"
+              />
             </div>
 
-            {/* Email (Read-only) */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={user.email || ""} disabled className="rounded-xl bg-muted" />
               <p className="text-xs text-muted-foreground">El email no se puede cambiar desde aquí</p>
             </div>
 
-            {/* Bio */}
             <div className="space-y-2">
               <Label htmlFor="bio">Biografía</Label>
               <Textarea
                 id="bio"
-                name="bio" // Añadido el atributo 'name'
+                name="bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 className="rounded-xl min-h-[100px]"
@@ -138,12 +140,11 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               />
             </div>
 
-            {/* Location */}
             <div className="space-y-2">
               <Label htmlFor="location">Ubicación</Label>
               <Input
                 id="location"
-                name="location" // Añadido el atributo 'name'
+                name="location"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -152,12 +153,11 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               />
             </div>
 
-            {/* Website */}
             <div className="space-y-2">
               <Label htmlFor="website">Sitio Web</Label>
               <Input
                 id="website"
-                name="website" // Añadido el atributo 'name'
+                name="website"
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
@@ -166,7 +166,6 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               />
             </div>
 
-            {/* Message */}
             {message && (
               <div
                 className={`p-3 rounded-xl border ${
@@ -179,7 +178,6 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
               </div>
             )}
 
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full rounded-xl h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"

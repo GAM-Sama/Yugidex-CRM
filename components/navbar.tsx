@@ -8,12 +8,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel, // <-- Importante, puede que falte
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image" // <-- AÑADIDO: Import para el componente Image
+import Image from "next/image"
 import type { User } from "@supabase/supabase-js"
 import { Moon, Sun, Settings, LogOut, UserIcon, BarChart3, CreditCard, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -45,18 +46,20 @@ export function Navbar({ user }: NavbarProps) {
     router.push("/auth/login")
   }
 
+  // Esta función coge la inicial del username
   const getUserInitials = () => {
-    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-      return `${user.user_metadata.first_name[0]}${user.user_metadata.last_name[0]}`.toUpperCase()
+    if (user?.user_metadata?.username) {
+      return user.user_metadata.username[0].toUpperCase()
     }
     return user?.email?.[0]?.toUpperCase() || "U"
   }
 
+  // Esta función coge el username completo
   const getUserDisplayName = () => {
-    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-      return `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+    if (user?.user_metadata?.username) {
+      return user.user_metadata.username
     }
-    return user?.email || "Usuario"
+    return "Usuario"
   }
 
   const navigationItems = [
@@ -69,30 +72,25 @@ export function Navbar({ user }: NavbarProps) {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-6">
-        
-        {/* --- INICIO DE LA MODIFICACIÓN --- */}
         <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-          {/* Logo para Light Mode (visible por defecto, oculto en dark) */}
-          <Image 
-            src="/logo_lm.png" 
-            alt="Yugidex Logo" 
-            width={32} 
-            height={32} 
+          <Image
+            src="/logo_lm.png"
+            alt="Yugidex Logo"
+            width={32}
+            height={32}
             className="dark:hidden"
           />
-          {/* Logo para Dark Mode (oculto por defecto, visible en dark) */}
-          <Image 
-            src="/logo_dm.png" 
-            alt="Yugidex Logo" 
-            width={32} 
-            height={32} 
+          <Image
+            src="/logo_dm.png"
+            alt="Yugidex Logo"
+            width={32}
+            height={32}
             className="hidden dark:block"
           />
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Yugidex CRM
           </h1>
         </Link>
-        {/* --- FIN DE LA MODIFICACIÓN --- */}
 
         <div className="hidden md:flex items-center space-x-1">
           {navigationItems.map((item) => {
@@ -132,12 +130,13 @@ export function Navbar({ user }: NavbarProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{getUserDisplayName()}</p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">{user?.email}</p>
-                  </div>
-                </div>
+                {/* --- INICIO DEL CAMBIO --- */}
+                {/* Reemplazamos el bloque de (nombre + email) por solo el nombre */}
+                <DropdownMenuLabel className="font-medium p-2">
+                  {getUserDisplayName()}
+                </DropdownMenuLabel>
+                {/* --- FIN DEL CAMBIO --- */}
+                
                 <DropdownMenuSeparator />
                 <div className="md:hidden">
                   {navigationItems.map((item) => {

@@ -12,15 +12,18 @@ export default async function ProfilePage() {
   }
 
   // --- INICIO DE LA MODIFICACIÓN ---
-  // Creamos un objeto 'profile' a partir de los metadatos del usuario.
-  // Ya no necesitamos consultar la tabla "Users".
+  // Construimos el objeto 'profile' leyendo 'username'
+  // desde los metadatos del usuario.
   const profile = {
     id: data.user.id,
-    first_name: data.user.user_metadata?.first_name || "",
-    last_name: data.user.user_metadata?.last_name || "",
+    // first_name: data.user.user_metadata?.first_name || "", // Eliminado
+    // last_name: data.user.user_metadata?.last_name || "", // Eliminado
+    username: data.user.user_metadata?.username || "", // Añadido
     bio: data.user.user_metadata?.bio || "",
     location: data.user.user_metadata?.location || "",
     website: data.user.user_metadata?.website || "",
+    // Asegúrate de que la interfaz 'Profile' en ProfileForm también
+    // tenga 'username' en lugar de 'first_name' y 'last_name'
   }
   // --- FIN DE LA MODIFICACIÓN ---
 
@@ -35,6 +38,9 @@ export default async function ProfilePage() {
             <p className="text-muted-foreground text-pretty">Gestiona tu información personal y preferencias</p>
           </div>
 
+          {/* Ahora le pasamos el objeto 'profile' con la propiedad 'username' 
+            al componente ProfileForm que modificamos antes.
+          */}
           <ProfileForm user={data.user} profile={profile} />
         </div>
       </main>

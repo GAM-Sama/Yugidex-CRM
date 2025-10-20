@@ -1,7 +1,6 @@
 // app/decks/builder/[id]/page.tsx
 
 // --- CONFIGURACIÓN ---
-// Marcamos la página como dinámica porque depende del usuario autenticado.
 export const dynamic = 'force-dynamic';
 
 import { redirect } from "next/navigation";
@@ -66,7 +65,12 @@ export default async function DeckBuilderPage({ params }: DeckBuilderPageProps) 
     description: userCard.Cartas.Descripcion,
     rarity: userCard.Cartas.Rareza,
     set_name: userCard.Cartas.Set_Expansion,
-    set_code: userCard.Cartas.set_code,
+    
+    // --- INICIO DE LA CORRECCIÓN ---
+    // El 'set_code' que espera la UI es el 'ID_Carta' de tu tabla 'Cartas'
+    set_code: userCard.Cartas.ID_Carta,
+    // --- FIN DE LA CORRECCIÓN ---
+
     quantity: userCard.cantidad || 1,
     condition: userCard.condition,
     price: userCard.price,

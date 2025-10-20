@@ -21,6 +21,7 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
     )
   }
 
+  // ... (tus funciones getTypeColor y getRarityColor no cambian) ...
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Monster":
@@ -73,9 +74,8 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
 
         <Separator />
 
-        {/* Card Details */}
+        {/* Card Details (Parámetros y stats) */}
         <div className="space-y-3">
-          {/* Icono Carta */}
           {card.card_icon && (
             <div className="flex justify-between">
               <span className="text-sm font-medium">Icono:</span>
@@ -91,30 +91,24 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
                   <span className="text-sm text-muted-foreground">{card.monster_type}</span>
                 </div>
               )}
-
-              {/* Subtipo */}
               {card.subtype && (
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Subtipo:</span>
                   <span className="text-sm text-muted-foreground">{card.subtype}</span>
                 </div>
               )}
-
-              {/* Clasificación */}
               {card.classification && (
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Clasificación:</span>
                   <span className="text-sm text-muted-foreground">{card.classification}</span>
                 </div>
               )}
-
               {card.attribute && (
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Atributo:</span>
                   <span className="text-sm text-muted-foreground">{card.attribute}</span>
                 </div>
               )}
-
               {card.level_rank_link && (
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Nivel:</span>
@@ -130,20 +124,6 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
                 </div>
               )}
             </>
-          )}
-
-          {card.set_name && (
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Set:</span>
-              <span className="text-sm text-muted-foreground">{card.set_name}</span>
-            </div>
-          )}
-
-          {card.set_code && (
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Código:</span>
-              <span className="text-sm text-muted-foreground">{card.set_code}</span>
-            </div>
           )}
 
           <div className="flex justify-between">
@@ -166,6 +146,33 @@ export function CardDetailPanel({ card }: CardDetailPanelProps) {
           )}
         </div>
 
+        {/* --- INICIO DE LA MODIFICACIÓN (NUEVA SECCIÓN) --- */}
+        {/* Usamos 'set_name' y 'set_code' de tu interfaz */}
+        {(card.set_name || card.set_code) && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              {/* Expansión */}
+              {card.set_name && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Expansión:</span>
+                  <span className="text-sm text-muted-foreground">{card.set_name}</span>
+                </div>
+              )}
+              {/* Código de Pack */}
+              {card.set_code && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Código de Pack:</span>
+                  <span className="text-sm text-muted-foreground">{card.set_code}</span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {/* --- FIN DE LA MODIFICACIÓN --- */}
+
+
+        {/* Sección de Descripción */}
         {card.description && (
           <>
             <Separator />

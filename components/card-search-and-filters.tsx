@@ -82,7 +82,13 @@ export function CardSearchAndFilters({
       spellTrapIcons: [],
       subtypes: [],
       minAtk: "",
+      maxAtk: "",
       minDef: "",
+      maxDef: "",
+      minLevel: "",
+      maxLevel: "",
+      minPendulumScale: "",
+      maxPendulumScale: "",
     })
   }
 
@@ -97,7 +103,16 @@ export function CardSearchAndFilters({
       filters.subtypes,
     ]
     const arrayCount = arrayFilters.reduce((count, arr) => count + arr.length, 0)
-    const otherFilters = [filters.minAtk, filters.minDef].filter((value) => value && value !== "").length
+    const otherFilters = [
+      filters.minAtk, 
+      filters.maxAtk,
+      filters.minDef,
+      filters.maxDef,
+      filters.minLevel,
+      filters.maxLevel,
+      filters.minPendulumScale,
+      filters.maxPendulumScale
+    ].filter((value) => value && value !== "").length
     return arrayCount + otherFilters
   }
 
@@ -314,6 +329,148 @@ export function CardSearchAndFilters({
                     onChange={(e) => updateFilter("minDef", e.target.value)}
                     className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
                   />
+                </div>
+              </div>
+
+              {/* Filtros de Nivel (para monstruos normales) */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-5 w-5 text-yellow-400" />
+                  <h3 className="text-lg font-semibold text-white">Nivel (Monstruos Normales)</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Nivel Mínimo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="12"
+                      placeholder="1"
+                      value={filters.minLevel || ""}
+                      onChange={(e) => updateFilter("minLevel", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Nivel Máximo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="12"
+                      placeholder="12"
+                      value={filters.maxLevel || ""}
+                      onChange={(e) => updateFilter("maxLevel", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtros de Rango (para monstruos Xyz) */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-5 w-5 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Rango (Monstruos Xyz)</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Rango Mínimo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="13"
+                      placeholder="1"
+                      value={filters.minRank || ""}
+                      onChange={(e) => updateFilter("minRank", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Rango Máximo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="13"
+                      placeholder="13"
+                      value={filters.maxRank || ""}
+                      onChange={(e) => updateFilter("maxRank", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtros de Rating de Enlace - Temporalmente deshabilitado 
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-lg font-semibold text-white">Rating de Enlace</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Rating Mínimo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="8"
+                      placeholder="1"
+                      value={filters.minLinkRating || ""}
+                      onChange={(e) => updateFilter("minLinkRating", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                      disabled
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Rating Máximo</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="8"
+                      placeholder="8"
+                      value={filters.maxLinkRating || ""}
+                      onChange={(e) => updateFilter("maxLinkRating", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
+              */}
+
+              {/* Filtros de Escala de Péndulo */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Escala de Péndulo</h3>
+                </div>
+                <div className="text-sm text-slate-400 mb-2">
+                  Solo se mostrarán cartas Péndulo cuando se aplique este filtro
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Escala Mínima</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="12"
+                      placeholder="1"
+                      value={filters.minPendulumScale || ""}
+                      onChange={(e) => updateFilter("minPendulumScale", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Escala Máxima</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="12"
+                      placeholder="12"
+                      value={filters.maxPendulumScale || ""}
+                      onChange={(e) => updateFilter("maxPendulumScale", e.target.value)}
+                      className="h-12 rounded-lg bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

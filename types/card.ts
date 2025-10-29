@@ -35,8 +35,19 @@ export interface CardFilters {
   monsterClassifications: string[]
   spellTrapIcons: string[]
   subtypes: string[]
+  // Filtros numéricos
   minAtk?: string
+  maxAtk?: string
   minDef?: string
+  maxDef?: string
+  minLevel?: string
+  maxLevel?: string
+  minRank?: string
+  maxRank?: string
+  minLinkRating?: string
+  maxLinkRating?: string
+  minPendulumScale?: string
+  maxPendulumScale?: string
 }
 
 // --- NUEVA VERSIÓN ---

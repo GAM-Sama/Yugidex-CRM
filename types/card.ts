@@ -1,3 +1,4 @@
+// types/card.ts
 export interface Card {
   id: string
   user_id: string
@@ -7,6 +8,8 @@ export interface Card {
   monster_type?: string
   attribute?: "LIGHT" | "DARK" | "WATER" | "FIRE" | "EARTH" | "WIND" | "DIVINE"
   level_rank_link?: number
+  link_rating?: number // 🔹 Nivel de Enlace (Link Rating)
+  pendulum_scale?: number // 🔹 Escala Péndulo
   atk?: number
   def?: number
   description?: string
@@ -32,14 +35,30 @@ export interface CardFilters {
   monsterClassifications: string[]
   spellTrapIcons: string[]
   subtypes: string[]
+  // Filtros numéricos
   minAtk?: string
+  maxAtk?: string
   minDef?: string
+  maxDef?: string
+  minLevel?: string
+  maxLevel?: string
+  minRank?: string
+  maxRank?: string
+  minLinkRating?: string
+  maxLinkRating?: string
+  minPendulumScale?: string
+  maxPendulumScale?: string
 }
 
-// --- INICIO DE LA MODIFICACIÓN ---
-// Criterio por el que se ordena
-export type SortBy = "name" | "atk" | "def" | "level" | "card_type"
+// --- NUEVA VERSIÓN ---
+export type SortBy =
+  | "name"
+  | "card_type"
+  | "atk"
+  | "def"
+  | "level"
+  | "rank" // 🔹 Rango (para Xyz)
+  | "link" // 🔹 Ratio Enlace
+  | "pendulum" // 🔹 Escala Péndulo
 
-// Dirección de la ordenación
 export type SortDirection = "asc" | "desc"
-// --- FIN DE LA MODIFICACIÓN ---

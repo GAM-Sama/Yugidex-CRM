@@ -177,14 +177,98 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
       const matchesMonsterType =
         filters.monsterTypes.length === 0 ||
         (card.monster_type && filters.monsterTypes.includes(card.monster_type))
-      const matchesLevel =
-        filters.levels.length === 0 ||
-        (card.level_rank_link != null &&
-          filters.levels.includes(card.level_rank_link.toString()))
+      
+      // Filtros de ATK/DEF
+      const cardAtk = card.atk ?? -1;
+      const cardDef = card.def ?? -1;
+      const matchesAtkRange = 
+        (!filters.minAtk || cardAtk >= Number(filters.minAtk)) &&
+        (!filters.maxAtk || cardAtk <= Number(filters.maxAtk));
+      const matchesDefRange = 
+        (!filters.minDef || cardDef >= Number(filters.minDef)) &&
+        (!filters.maxDef || cardDef <= Number(filters.maxDef));
+      
+      // Determinar el tipo de monstruo para aplicar los filtros correctos
+      const isPendulum = (card.monster_type?.toLowerCase().includes('pendulum') || 
+                         card.subtype?.toLowerCase().includes('pendulum'));
+      const isXyz = card.subtype?.toLowerCase().includes('xyz');
+      const isLink = card.subtype?.toLowerCase().includes('link');
+      const isNormalMonster = !isXyz && !isLink; // Monstruo normal (ni Xyz ni Link)
+      
+      // Obtener el valor numérico del nivel/rango/rating
+      const cardLevel = card.level_rank_link ?? -1;
+      const linkRating = card.link_rating ?? 0;
+      
+      // Verificar si hay algún filtro de nivel/rango activo
+      const hasLevelFilter = filters.minLevel || filters.maxLevel;
+      const hasRankFilter = filters.minRank || filters.maxRank;
+      // Deshabilitado temporalmente el filtro de Link Rating
+      const hasLinkRatingFilter = false; // Boolean(filters.minLinkRating || filters.maxLinkRating);
+      
+      // Mostrar todas las cartas por defecto
+      let matchesLevelFilter = true;
+      let matchesRankFilter = true;
+      let matchesLinkRatingFilter = true;
+      
+      // Aplicar filtros solo si corresponden al tipo de carta
+      
+      // Aplicar filtros solo si corresponden al tipo de carta
+      if (isNormalMonster) {
+        // Solo aplicar filtro de nivel a monstruos normales
+        matchesLevelFilter = 
+          !hasLevelFilter || // Si no hay filtro de nivel, pasa
+          (cardLevel >= Number(filters.minLevel || 1) && 
+           cardLevel <= Number(filters.maxLevel || 12));
+      }
+      
+      if (isXyz) {
+        // Solo aplicar filtro de rango a monstruos Xyz
+        matchesRankFilter = 
+          !hasRankFilter || // Si no hay filtro de rango, pasa
+          (cardLevel >= Number(filters.minRank || 1) && 
+           cardLevel <= Number(filters.maxRank || 13));
+      }
+      
+      if (isLink) {
+        // Para monstruos Link, verificar el rating de enlace
+        const linkRating = card.link_rating ?? 0;
+        
+        if (hasLinkRatingFilter) {
+          // Si hay filtro de rating, la carta debe cumplir con el rango
+          matchesLinkRatingFilter = 
+            linkRating >= Number(filters.minLinkRating || 1) && 
+            linkRating <= Number(filters.maxLinkRating || 8);
+        } else {
+          // Si no hay filtro de rating, la carta Link es válida
+          matchesLinkRatingFilter = true;
+        }
+      }
+      
+      // La carta debe coincidir con los filtros de su tipo
+      const matchesTypeSpecificFilters = 
+        // Si es monstruo normal, debe coincidir con el filtro de nivel (si está activo)
+        (!isNormalMonster || !hasLevelFilter || matchesLevelFilter) &&
+        // Si es Xyz, debe coincidir con el filtro de rango (si está activo)
+        (!isXyz || !hasRankFilter || matchesRankFilter) &&
+        // Filtro de Link Rating temporalmente deshabilitado
+        true;
+      
+      // Filtro de escala de péndulo (solo para cartas péndulo)
+      const cardPendulumScale = card.pendulum_scale ?? 0;
+      const matchesPendulumScale = 
+        !isPendulum ? false : ( // Si no es péndulo, no coincide a menos que no se esté filtrando por escala
+          (!filters.minPendulumScale || cardPendulumScale >= Number(filters.minPendulumScale)) &&
+          (!filters.maxPendulumScale || cardPendulumScale <= Number(filters.maxPendulumScale))
+        );
+      
+      // Si se está filtrando por escala de péndulo, solo mostrar cartas péndulo
+      const shouldFilterByPendulumScale = filters.minPendulumScale || filters.maxPendulumScale;
+      const matchesPendulumType = !shouldFilterByPendulumScale || isPendulum;
+      
+      // Filtros específicos por tipo de carta
       const matchesMonsterClassification =
         filters.monsterClassifications.length === 0 ||
-        (card.classification &&
-          filters.monsterClassifications.includes(card.classification))
+        (card.classification && filters.monsterClassifications.includes(card.classification))
       const matchesSpellTrapIcon =
         filters.spellTrapIcons.length === 0 ||
         (card.card_icon &&
@@ -197,24 +281,22 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
           if (s === "Normal" || s === "Effect") return card.classification === s
           return card.subtype === s
         })
-      const matchesMinAtk =
-        !filters.minAtk ||
-        (typeof card.atk === "number" && card.atk >= Number.parseInt(filters.minAtk, 10))
-      const matchesMinDef =
-        !filters.minDef ||
-        (typeof card.def === "number" && card.def >= Number.parseInt(filters.minDef, 10))
 
       return (
         matchesSearch &&
         matchesType &&
         matchesAttribute &&
         matchesMonsterType &&
-        matchesLevel &&
+        matchesTypeSpecificFilters && // Usar el filtro combinado de tipo
+        matchesAtkRange &&
+        matchesDefRange &&
+        (!shouldFilterByPendulumScale || matchesPendulumScale) &&
+        matchesPendulumType &&
         matchesMonsterClassification &&
         matchesSpellTrapIcon &&
-        matchesSubtype &&
-        matchesMinAtk &&
-        matchesMinDef
+        matchesSubtype
+        // Asegurarse de que los monstruos que no coincidan con su filtro específico se oculten
+        // (estas líneas ya no son necesarias porque la lógica está en matchesTypeSpecificFilters)
       )
     })
 
@@ -264,8 +346,17 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
       const bIsXyz = b.subtype === 'Xyz';
       const aIsLink = a.subtype === 'Link';
       const bIsLink = b.subtype === 'Link';
-      const aIsPendulum = a.subtype?.includes('Pendulum') || false;
-      const bIsPendulum = b.subtype?.includes('Pendulum') || false;
+      // Mejoramos la detección de cartas Péndulo
+      const aIsPendulum = (
+        (a.monster_type?.toLowerCase().includes('pendulum') || 
+         a.subtype?.toLowerCase().includes('pendulum')) && 
+        a.pendulum_scale != null
+      );
+      const bIsPendulum = (
+        (b.monster_type?.toLowerCase().includes('pendulum') || 
+         b.subtype?.toLowerCase().includes('pendulum')) && 
+        b.pendulum_scale != null
+      );
 
       // Si estamos ordenando por nivel, las cartas Link y Xyz van al final (pero antes que magias/trampas)
       if (isSortingByLevel) {
@@ -313,22 +404,29 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
         // Si ambas son Link, la lógica de comparación se manejará en el switch
       }
       
-      // Si estamos ordenando por péndulo, solo aplica a cartas Péndulo
+      // Si estamos ordenando por péndulo
       if (isSortingByPendulum) {
-        if (aIsPendulum && !bIsPendulum) {
-          return -1; // a (Péndulo) va primero
-        }
-        if (!aIsPendulum && bIsPendulum) {
-          return 1; // b (Péndulo) va primero
-        }
-        // Si ninguna es Péndulo, las ordenamos por nombre
+        // Si una es Péndulo y la otra no, la Péndulo va primero
+        if (aIsPendulum && !bIsPendulum) return -1;
+        if (!aIsPendulum && bIsPendulum) return 1;
+        
+        // Si ninguna es Péndulo, ordenar por nombre
         if (!aIsPendulum && !bIsPendulum) {
           return a.name.localeCompare(b.name);
         }
-        // Si ambas son Péndulo, comparamos por pendulum_scale
+        
+        // Si ambas son Péndulo, ordenar por escala
         if (aIsPendulum && bIsPendulum) {
-          const scaleA = a.pendulum_scale ?? -1;
-          const scaleB = b.pendulum_scale ?? -1;
+          // Aseguramos que los valores sean números válidos
+          const scaleA = Number(a.pendulum_scale) || 0;
+          const scaleB = Number(b.pendulum_scale) || 0;
+          
+          // Si las escalas son iguales, ordenar por nombre
+          if (scaleA === scaleB) {
+            return a.name.localeCompare(b.name);
+          }
+          
+          // Ordenar por escala según la dirección
           return sortDirection === 'asc' ? scaleA - scaleB : scaleB - scaleA;
         }
       }

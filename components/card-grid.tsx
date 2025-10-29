@@ -1,17 +1,19 @@
 "use client"
 
+import { useState } from "react"
 import type { Card } from "@/types/card"
 import { Card as UICard, CardContent } from "@/components/ui/card"
-import { cn, getCardGlowStyle } from "@/lib/utils" // 1. Importamos la utilidad
+import { cn, getCardGlowStyle } from "@/lib/utils"
 import { FlippableCard } from "@/components/ui/flippable-card"
 
 interface CardGridProps {
   cards: Card[]
   selectedCard: Card | null
   onCardSelect: (card: Card) => void
+  onCardHover?: (card: Card | null) => void
 }
 
-export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
+export function CardGrid({ cards, selectedCard, onCardSelect, onCardHover }: CardGridProps) {
   if (cards.length === 0) {
     return (
       <UICard className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
@@ -25,6 +27,8 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
     )
   }
 
+  const [hoveredCard, setHoveredCard] = useState<Card | null>(null)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-shrink-0">
@@ -35,18 +39,25 @@ export function CardGrid({ cards, selectedCard, onCardSelect }: CardGridProps) {
         {cards.map((card) => (
           <div
             key={card.id}
-            style={getCardGlowStyle(card)} // 2. Aplicamos el brillo como un estilo
+            style={getCardGlowStyle(card)}
             className={cn(
               "relative cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 overflow-hidden group",
               "bg-card/80 backdrop-blur-sm",
-              selectedCard?.id === card.id && "ring-2 ring-primary shadow-lg scale-105",
+              selectedCard?.id === card.id ? "ring-2 ring-primary shadow-lg scale-105" : "",
             )}
-            onMouseEnter={() => onCardSelect(card)}
+            onClick={() => onCardSelect(card)}
+            onMouseEnter={() => {
+              setHoveredCard(card)
+              onCardHover && onCardHover(card)
+            }}
+            onMouseLeave={() => {
+              setHoveredCard(null)
+              onCardHover && onCardHover(null)
+            }}
           >
             <div className="aspect-[2/3] w-full">
               <FlippableCard
-                // 3. Pasamos el objeto 'card' completo
-                card={card}
+                card={hoveredCard?.id === card.id ? hoveredCard : card}
               />
             </div>
 

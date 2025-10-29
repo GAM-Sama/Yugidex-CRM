@@ -36,30 +36,59 @@ export default async function CardsPage() {
     .eq('user_id', user.id)
     .range(0, CARDS_PER_PAGE - 1); // Carga del 0 al 47
 
-  // El mapeo de datos se mantiene igual
-  const initialCards: Card[] = userCardsData?.map((userCard: any) => ({
-    id: userCard.Cartas.ID_Carta?.toString() || userCard.Cartas.id?.toString(),
-    user_id: user.id,
-    name: userCard.Cartas.Nombre || "",
-    image_url: userCard.Cartas.Imagen,
-    card_type: userCard.Cartas.Marco_Carta || "Monster",
-    monster_type: userCard.Cartas.Tipo,
-    attribute: userCard.Cartas.Atributo,
-    level_rank_link: userCard.Cartas.Nivel_Rank_Link,
-    atk: userCard.Cartas.ATK,
-    def: userCard.Cartas.DEF,
-    description: userCard.Cartas.Descripcion,
-    rarity: userCard.Cartas.Rareza,
-    set_code: userCard.Cartas.ID_Carta,
-    quantity: userCard.cantidad || 1,
-    condition: userCard.condition,
-    price: userCard.Cartas.price,
-    card_icon: userCard.Cartas["Icono Carta"],
-    subtype: userCard.Cartas.Subtipo,
-    classification: userCard.Cartas.Clasificacion,
-    created_at: userCard.created_at || new Date().toISOString(),
-    updated_at: userCard.updated_at || new Date().toISOString(),
-  })) || [];
+  // Depuración: Mostrar los datos de la primera carta para verificar los campos
+  if (userCardsData && userCardsData.length > 0) {
+    console.log('Datos completos de la primera carta:', JSON.stringify(userCardsData[0].Cartas, null, 2));
+    console.log('Campos disponibles en Cartas:', Object.keys(userCardsData[0].Cartas).join(', '));
+  }
+
+  // Mapeo de datos con manejo de campos nulos
+  const initialCards: Card[] = userCardsData?.map((userCard: any) => {
+    // Depuración: Mostrar los datos en bruto de cada carta
+    console.log('Datos en bruto de la carta:', {
+      id: userCard.Cartas.ID_Carta || userCard.Cartas.id,
+      nombre: userCard.Cartas.Nombre,
+      tipo: userCard.Cartas.Tipo,
+      subtipo: userCard.Cartas.Subtipo,
+      escala_pendulo: userCard.Cartas.escala_pendulo,
+      marco_carta: userCard.Cartas.Marco_Carta,
+      rawData: userCard.Cartas
+    });
+
+    // Determinar si es una carta péndulo
+    const isPendulum = 
+      (userCard.Cartas.Tipo?.toLowerCase()?.includes('pendulum') || 
+       userCard.Cartas.Subtipo?.toLowerCase()?.includes('pendulum')) &&
+      userCard.Cartas.escala_pendulo != null;
+
+    console.log(`La carta ${userCard.Cartas.Nombre} es Péndulo:`, isPendulum);
+
+    return {
+      id: userCard.Cartas.ID_Carta?.toString() || userCard.Cartas.id?.toString(),
+      user_id: user.id,
+      name: userCard.Cartas.Nombre || "Sin nombre",
+      image_url: userCard.Cartas.Imagen,
+      card_type: userCard.Cartas.Marco_Carta || "Monster",
+      monster_type: userCard.Cartas.Tipo,
+      attribute: userCard.Cartas.Atributo,
+      level_rank_link: userCard.Cartas.Nivel_Rank_Link,
+      atk: userCard.Cartas.ATK,
+      def: userCard.Cartas.DEF,
+      description: userCard.Cartas.Descripcion,
+      rarity: userCard.Cartas.Rareza,
+      set_code: userCard.Cartas.ID_Carta,
+      set_name: userCard.Cartas.Set_Expansion,
+      quantity: userCard.cantidad || 1,
+      condition: userCard.condition,
+      price: userCard.Cartas.price,
+      card_icon: userCard.Cartas["Icono Carta"],
+      subtype: userCard.Cartas.Subtipo,
+      classification: userCard.Cartas.Clasificacion,
+      pendulum_scale: userCard.Cartas.escala_pendulo,
+      created_at: userCard.created_at || new Date().toISOString(),
+      updated_at: userCard.updated_at || new Date().toISOString(),
+    };
+  }) || [];
 
   return (
     <div className="bg-gradient-to-br from-background via-primary/5 to-accent/5">

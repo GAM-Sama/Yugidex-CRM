@@ -35,7 +35,10 @@ const sortOptions: { value: SortBy; label: string }[] = [
   { value: "card_type", label: "Tipo de Carta" },
   { value: "atk", label: "Ataque" },
   { value: "def", label: "Defensa" },
-  { value: "level", label: "Nivel/Rango" },
+  { value: "level", label: "Nivel" },
+  { value: "rank", label: "Rango" },
+  { value: "link", label: "Link" },
+  { value: "pendulum", label: "Escala Péndulo" },
 ]
 
 export function CardSearchAndFilters({

@@ -1,27 +1,64 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback, useTransition } from "react"
 import type { Card, CardFilters, SortBy, SortDirection } from "@/types/card"
 import { DeckCardPreview } from "@/components/deck-card-preview"
 import { CardGrid } from "@/components/card-grid"
 import { CardSearchAndFilters } from "@/components/card-search-and-filters"
-import { fetchMoreCards } from "@/app/cards/actions"
+import { fetchMoreCards, deleteCard } from "@/app/cards/actions"
 import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
-// Helper para la ordenación por tipo (sin cambios)
-const getCardSortValue = (card: Card): string => {
-  const typeOrder: Record<string, number> = { Monster: 1, Spell: 2, Trap: 3 }
-  const monsterSubtypeOrder: Record<string, number> = { Fusion: 1, Synchro: 2, Xyz: 3, Link: 4, Pendulum: 5, Ritual: 6, Effect: 7, Normal: 8, Tuner: 9, Flip: 10, Gemini: 11, Spirit: 12, Toon: 13, Union: 14 }
-  const spellTrapOrder: Record<string, number> = { Normal: 1, Continuous: 2, Equip: 3, "Quick-Play": 4, Field: 5, Ritual: 6, Counter: 7 }
-  const primary = typeOrder[card.card_type] ?? 99
-  let secondary = 99
-  if (card.card_type === "Monster") {
-    if (card.subtype && monsterSubtypeOrder[card.subtype]) secondary = monsterSubtypeOrder[card.subtype]
-    else if (card.classification && monsterSubtypeOrder[card.classification]) secondary = monsterSubtypeOrder[card.classification]
-  } else if (card.card_icon && spellTrapOrder[card.card_icon]) {
-    secondary = spellTrapOrder[card.card_icon]
+// ✅ Sistema de pesos dinámico basado en tipo
+function getWeight(card: Card, sortBy: SortBy): number {
+  const marcoLower = card.card_type?.toLowerCase() ?? ""
+  const tipoLower = card.classification?.toLowerCase() ?? ""
+  const subtypesLower = (card.subtype ? [card.subtype] : [])
+    .map((s) => s.toLowerCase())
+
+  const isLink =
+    marcoLower.includes("link") ||
+    tipoLower.includes("link") ||
+    subtypesLower.includes("link")
+
+  const isXyz =
+    marcoLower.includes("xyz") ||
+    tipoLower.includes("xyz") ||
+    subtypesLower.includes("xyz")
+
+  const isPendulum =
+    marcoLower.includes("pendulum") ||
+    tipoLower.includes("péndulo") ||
+    subtypesLower.includes("pendulum")
+
+  const isMonster =
+    marcoLower.includes("monster") ||
+    marcoLower.includes("monstruo") ||
+    tipoLower.includes("monster")
+
+  // 💡 Dinámica según campo de ordenación
+  switch (sortBy) {
+    case "link":
+      if (isLink) return 0 // Prioriza Links
+      break
+    case "rank":
+      if (isXyz) return 0 // Prioriza Xyz
+      break
+    case "pendulum":
+      if (isPendulum) return 0 // Prioriza Péndulos
+      break
+    case "level":
+      if (!isLink && !isXyz && !isPendulum && isMonster) return 0 // Monstruos normales arriba
+      break
+    default:
+      break
   }
-  return `${primary.toString().padStart(2, "0")}-${secondary.toString().padStart(2, "0")}`
+
+  // Orden general (por peso)
+  if (isLink || isXyz || isPendulum) return 1 // Tipos especiales
+  if (isMonster) return 2 // Monstruos normales
+  return 3 // Magias/Trampas al final
 }
 
 interface CardManagementInterfaceProps {
@@ -30,37 +67,63 @@ interface CardManagementInterfaceProps {
 }
 
 export function CardManagementInterface({ initialCards, totalCards }: CardManagementInterfaceProps) {
-  // --- Estados para el scroll infinito ---
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [page, setPage] = useState(2)
   const [isLoading, setIsLoading] = useState(false)
   const hasMore = cards.length < totalCards
 
-  // --- Otros estados (sin cambios) ---
-  const [selectedCard, setSelectedCard] = useState<Card | null>(initialCards.length > 0 ? initialCards[0] : null)
-  const [filters, setFilters] = useState<CardFilters>({ search: "", cardTypes: [], attributes: [], monsterTypes: [], levels: [], monsterClassifications: [], spellTrapIcons: [], subtypes: [], minAtk: "", minDef: "" })
+  const [selectedCard, setSelectedCard] = useState<Card | null>(
+    initialCards.length > 0 ? initialCards[0] : null
+  )
+  const [previewCard, setPreviewCard] = useState<Card | null>(null)
+  const [filters, setFilters] = useState<CardFilters>({
+    search: "",
+    cardTypes: [],
+    attributes: [],
+    monsterTypes: [],
+    levels: [],
+    monsterClassifications: [],
+    spellTrapIcons: [],
+    subtypes: [],
+    minAtk: "",
+    minDef: "",
+  })
   const [sortBy, setSortBy] = useState<SortBy>("name")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
-  // --- Lógica de scroll infinito (sin cambios) ---
+  // --- Selección y hover ---
+  const handleCardSelect = (card: Card) => {
+    setSelectedCard(card)
+    setPreviewCard(card)
+  }
+
+  const handleCardHover = (card: Card | null) => {
+    if (card && selectedCard?.id !== card.id) setPreviewCard(card)
+    else if (!card && selectedCard) setPreviewCard(selectedCard)
+  }
+
+  // --- Scroll infinito ---
   const observer = useRef<IntersectionObserver>()
-  const loaderRef = useCallback((node: HTMLDivElement) => {
-    if (isLoading) return
-    if (observer.current) observer.current.disconnect()
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMoreCards()
-      }
-    })
-    if (node) observer.current.observe(node)
-  }, [isLoading, hasMore])
+  const loaderRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (isLoading) return
+      if (observer.current) observer.current.disconnect()
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) loadMoreCards()
+      })
+      if (node) observer.current.observe(node)
+    },
+    [isLoading, hasMore]
+  )
 
   const loadMoreCards = async () => {
     if (isLoading || !hasMore) return
     setIsLoading(true)
     const newCards = await fetchMoreCards(page)
-    setCards((prevCards) => [...prevCards, ...newCards])
-    setPage((prevPage) => prevPage + 1)
+    setCards((prev) => [...prev, ...newCards])
+    setPage((prev) => prev + 1)
     setIsLoading(false)
   }
 
@@ -72,78 +135,330 @@ export function CardManagementInterface({ initialCards, totalCards }: CardManage
       setSortDirection("asc")
     }
   }
-  
-  // Resetea las cartas cuando cambian las props iniciales
+
+  const handleDeleteCard = async (cardId: string, quantity: number) => {
+    startTransition(async () => {
+      try {
+        const result = await deleteCard(cardId, quantity)
+        if (!result.success) throw new Error(result.error || "Error al eliminar la carta")
+
+        const deletedQuantity = result.quantity || 1
+        const cardName = result.cardName || "la carta"
+
+        toast.success(
+          deletedQuantity > 1
+            ? `Se han eliminado ${deletedQuantity} copias de ${cardName}`
+            : `Se ha eliminado 1 copia de ${cardName}`
+        )
+
+        router.refresh()
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Error al eliminar la carta"
+        toast.error(errorMessage)
+      }
+    })
+  }
+
   useEffect(() => {
     setCards(initialCards)
     setPage(2)
   }, [initialCards])
 
-  // Lógica de filtrado y ordenación
+  // --- FILTRADO Y ORDENACIÓN AVANZADA ---
   const processedCards = useMemo(() => {
     const filtered = cards.filter((card) => {
       const matchesSearch = card.name.toLowerCase().includes(filters.search.toLowerCase())
-      const matchesType = filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
-      const matchesAttribute = filters.attributes.length === 0 || (card.attribute && filters.attributes.includes(card.attribute))
-      const matchesMonsterType = filters.monsterTypes.length === 0 || (card.monster_type && filters.monsterTypes.includes(card.monster_type))
-      const matchesLevel = filters.levels.length === 0 || (card.level_rank_link !== null && card.level_rank_link !== undefined && filters.levels.includes(card.level_rank_link.toString()))
-      const matchesMonsterClassification = filters.monsterClassifications.length === 0 || (card.classification && filters.monsterClassifications.includes(card.classification))
-      const matchesSpellTrapIcon = filters.spellTrapIcons.length === 0 || (card.card_icon && filters.spellTrapIcons.some((filter) => card.card_icon?.toLowerCase().includes(filter.toLowerCase())))
-      const matchesSubtype = filters.subtypes.length === 0 || filters.subtypes.some((filterSubtype) => { if (filterSubtype === "Normal" || filterSubtype === "Effect") { return card.classification === filterSubtype } return card.subtype === filterSubtype })
-      const matchesMinAtk = !filters.minAtk || (card.atk !== null && card.atk !== undefined && card.atk >= Number.parseInt(filters.minAtk))
-      const matchesMinDef = !filters.minDef || (card.def !== null && card.def !== undefined && card.def >= Number.parseInt(filters.minDef))
-      return (matchesSearch && matchesType && matchesAttribute && matchesMonsterType && matchesLevel && matchesMonsterClassification && matchesSpellTrapIcon && matchesSubtype && matchesMinAtk && matchesMinDef)
+      const matchesType =
+        filters.cardTypes.length === 0 || filters.cardTypes.includes(card.card_type)
+      const matchesAttribute =
+        filters.attributes.length === 0 ||
+        (card.attribute && filters.attributes.includes(card.attribute))
+      const matchesMonsterType =
+        filters.monsterTypes.length === 0 ||
+        (card.monster_type && filters.monsterTypes.includes(card.monster_type))
+      const matchesLevel =
+        filters.levels.length === 0 ||
+        (card.level_rank_link != null &&
+          filters.levels.includes(card.level_rank_link.toString()))
+      const matchesMonsterClassification =
+        filters.monsterClassifications.length === 0 ||
+        (card.classification &&
+          filters.monsterClassifications.includes(card.classification))
+      const matchesSpellTrapIcon =
+        filters.spellTrapIcons.length === 0 ||
+        (card.card_icon &&
+          filters.spellTrapIcons.some((f) =>
+            card.card_icon?.toLowerCase().includes(f.toLowerCase())
+          ))
+      const matchesSubtype =
+        filters.subtypes.length === 0 ||
+        filters.subtypes.some((s) => {
+          if (s === "Normal" || s === "Effect") return card.classification === s
+          return card.subtype === s
+        })
+      const matchesMinAtk =
+        !filters.minAtk ||
+        (typeof card.atk === "number" && card.atk >= Number.parseInt(filters.minAtk, 10))
+      const matchesMinDef =
+        !filters.minDef ||
+        (typeof card.def === "number" && card.def >= Number.parseInt(filters.minDef, 10))
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesAttribute &&
+        matchesMonsterType &&
+        matchesLevel &&
+        matchesMonsterClassification &&
+        matchesSpellTrapIcon &&
+        matchesSubtype &&
+        matchesMinAtk &&
+        matchesMinDef
+      )
     })
 
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === "name") {
-        return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    const sorted = [...filtered].sort((a: Card, b: Card): number => {
+      // Función para verificar si una carta es mágica o trampa
+      const isSpellOrTrap = (card: Card): boolean =>
+        card.card_type === "Spell" || card.card_type === "Trap"
+
+      // Primero manejamos el caso de cartas mágicas/trampas
+      const aIsSpellTrap = isSpellOrTrap(a)
+      const bIsSpellTrap = isSpellOrTrap(b)
+
+      // Si una es mágica/trampa y la otra no, la mágica/trampa siempre va al final
+      if (aIsSpellTrap && !bIsSpellTrap) {
+        return 1 // a (mágica/trampa) va después
       }
-      if (sortBy === "card_type") {
-        const valA = getCardSortValue(a);
-        const valB = getCardSortValue(b);
-        return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      if (!aIsSpellTrap && bIsSpellTrap) {
+        return -1 // b (mágica/trampa) va después
       }
-      let valA: number, valB: number
-      if (sortBy === "atk") { valA = a.atk ?? -1; valB = b.atk ?? -1 } 
-      else if (sortBy === "def") { valA = a.def ?? -1; valB = b.def ?? -1 } 
-      else { valA = a.level_rank_link ?? -1; valB = b.level_rank_link ?? -1 }
-      return sortDirection === "asc" ? valA - valB : valB - valA
+
+      // Si ambas son mágicas/trampas, las ordenamos entre ellas
+      if (aIsSpellTrap && bIsSpellTrap) {
+        // Primero por tipo (Spell antes que Trap)
+        let comparison = a.card_type.localeCompare(b.card_type)
+        // Luego por subtipo si son del mismo tipo
+        if (comparison === 0) {
+          comparison = (a.subtype || "").localeCompare(b.subtype || "")
+        }
+        // Finalmente por nombre
+        if (comparison === 0) {
+          comparison = a.name.localeCompare(b.name)
+        }
+        return sortDirection === "asc" ? comparison : -comparison
+      }
+
+      // Si llegamos aquí, ninguna es mágica/trampa
+      // Verificamos si estamos ordenando por nivel, rango, link o pendulum
+      const isSortingByLevel = sortBy === 'level';
+      const isSortingByRank = sortBy === 'rank';
+      const isSortingByLink = sortBy === 'link';
+      const isSortingByPendulum = sortBy === 'pendulum';
+      
+      // Verificamos tipos de cartas
+      const aIsLinkOrXyz = a.subtype === 'Link' || a.subtype === 'Xyz';
+      const bIsLinkOrXyz = b.subtype === 'Link' || b.subtype === 'Xyz';
+      const aIsXyz = a.subtype === 'Xyz';
+      const bIsXyz = b.subtype === 'Xyz';
+      const aIsLink = a.subtype === 'Link';
+      const bIsLink = b.subtype === 'Link';
+      const aIsPendulum = a.subtype?.includes('Pendulum') || false;
+      const bIsPendulum = b.subtype?.includes('Pendulum') || false;
+
+      // Si estamos ordenando por nivel, las cartas Link y Xyz van al final (pero antes que magias/trampas)
+      if (isSortingByLevel) {
+        if (aIsLinkOrXyz && !bIsLinkOrXyz) {
+          return 1; // a (Link/Xyz) va después
+        }
+        if (!aIsLinkOrXyz && bIsLinkOrXyz) {
+          return -1; // b (Link/Xyz) va después
+        }
+        // Si ambas son Link/Xyz, las ordenamos entre ellas por nombre
+        if (aIsLinkOrXyz && bIsLinkOrXyz) {
+          return sortDirection === 'asc' 
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name);
+        }
+      }
+      
+      // Si estamos ordenando por rango, solo aplica a cartas Xyz
+      if (isSortingByRank) {
+        if (aIsXyz && !bIsXyz) {
+          return -1; // a (Xyz) va primero
+        }
+        if (!aIsXyz && bIsXyz) {
+          return 1; // b (Xyz) va primero
+        }
+        // Si ninguna es Xyz, las ordenamos por nombre
+        if (!aIsXyz && !bIsXyz) {
+          return a.name.localeCompare(b.name);
+        }
+        // Si ambas son Xyz, la lógica de comparación se manejará en el switch
+      }
+      
+      // Si estamos ordenando por link, solo aplica a cartas Link
+      if (isSortingByLink) {
+        if (aIsLink && !bIsLink) {
+          return -1; // a (Link) va primero
+        }
+        if (!aIsLink && bIsLink) {
+          return 1; // b (Link) va primero
+        }
+        // Si ninguna es Link, las ordenamos por nombre
+        if (!aIsLink && !bIsLink) {
+          return a.name.localeCompare(b.name);
+        }
+        // Si ambas son Link, la lógica de comparación se manejará en el switch
+      }
+      
+      // Si estamos ordenando por péndulo, solo aplica a cartas Péndulo
+      if (isSortingByPendulum) {
+        if (aIsPendulum && !bIsPendulum) {
+          return -1; // a (Péndulo) va primero
+        }
+        if (!aIsPendulum && bIsPendulum) {
+          return 1; // b (Péndulo) va primero
+        }
+        // Si ninguna es Péndulo, las ordenamos por nombre
+        if (!aIsPendulum && !bIsPendulum) {
+          return a.name.localeCompare(b.name);
+        }
+        // Si ambas son Péndulo, comparamos por pendulum_scale
+        if (aIsPendulum && bIsPendulum) {
+          const scaleA = a.pendulum_scale ?? -1;
+          const scaleB = b.pendulum_scale ?? -1;
+          return sortDirection === 'asc' ? scaleA - scaleB : scaleB - scaleA;
+        }
+      }
+
+      // Si llegamos aquí, ninguna es mágica/trampa ni Link/Xyz (cuando se ordena por nivel)
+      let comparison = 0
+
+      // Función para parsear valores numéricos, manejando '?' y valores nulos/undefined
+      const parseValue = (val: number | string | undefined | null): number => {
+        if (val === "?" || val === undefined || val === null) return -1
+        return typeof val === "string" ? parseInt(val) || -1 : val
+      }
+
+      // Función auxiliar para obtener el valor de nivel/rango/link
+      const getLevelRankLinkValue = (card: Card): number => {
+        return card.level_rank_link ?? -1
+      }
+
+      switch (sortBy) {
+        case "name":
+          comparison = a.name.localeCompare(b.name)
+          break
+
+        case "atk":
+          comparison = parseValue(a.atk) - parseValue(b.atk)
+          break
+
+        case "def":
+          comparison = parseValue(a.def) - parseValue(b.def)
+          break
+
+        case "level":
+          // Solo para monstruos que no son Xyz/Link (estos ya se manejaron antes)
+          comparison = getLevelRankLinkValue(a) - getLevelRankLinkValue(b)
+          break
+
+        case "rank":
+          // Solo para Xyz (ya verificamos que ambas son Xyz en la lógica anterior)
+          comparison = getLevelRankLinkValue(a) - getLevelRankLinkValue(b);
+          break
+
+        case "link":
+          // Solo para Link (ya verificamos que ambas son Link en la lógica anterior)
+          comparison = (a.link_rating ?? -1) - (b.link_rating ?? -1);
+          break
+
+        case "pendulum":
+          // Ya manejado en la lógica anterior
+          comparison = 0;
+          break
+
+        case "card_type":
+          // Ordenar por tipo principal (Monstruo, Mágica, Trampa)
+          const typeOrder: Record<string, number> = {
+            Monster: 1,
+            Spell: 2,
+            Trap: 3,
+          }
+          comparison = typeOrder[a.card_type] - typeOrder[b.card_type]
+
+          // Si son del mismo tipo principal
+          if (comparison === 0) {
+            // Para monstruos, ordenar por subtipo
+            if (a.card_type === "Monster") {
+              const aType = a.subtype || ""
+              const bType = b.subtype || ""
+              comparison = aType.localeCompare(bType)
+
+              // Si son del mismo subtipo, ordenar por nivel/rango
+              if (comparison === 0) {
+                comparison = getLevelRankLinkValue(a) - getLevelRankLinkValue(b)
+              }
+            }
+            // Para mágicas/trampas, ordenar por subtipo
+            else {
+              comparison = (a.subtype || "").localeCompare(b.subtype || "")
+            }
+          }
+          break
+
+        default:
+          comparison = 0
+      }
+
+      // Desempate por nombre si hay igualdad
+      if (comparison === 0) {
+        comparison = a.name.localeCompare(b.name)
+      }
+
+      // Aplicar dirección de ordenación
+      return sortDirection === "asc" ? comparison : -comparison
     })
+
     return sorted
   }, [cards, filters, sortBy, sortDirection])
 
   return (
-    // 1. Contenedor principal: Cambiamos a flex-row para crear dos columnas.
     <main className="container mx-auto px-6 py-8 h-[calc(100vh-64px)] flex flex-row gap-8">
-      
-      {/* 2. Columna Izquierda (FIJA): Panel de la carta. Ocupa toda la altura. */}
       <div className="w-full lg:w-96 flex-shrink-0">
-        <DeckCardPreview card={selectedCard} />
+        <DeckCardPreview
+          card={previewCard || selectedCard}
+          onDelete={handleDeleteCard}
+          isDeckEditor={false}
+        />
       </div>
 
-      {/* 3. Columna Derecha: Contendrá la búsqueda y la parrilla de cartas. */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0"> {/* min-w-0 evita que el contenido se desborde */}
-        
-        {/* Barra de búsqueda (FIJA en la parte superior de la columna derecha) */}
+      <div className="flex-1 flex flex-col gap-6 min-w-0">
         <div className="flex-shrink-0">
-          <CardSearchAndFilters 
-            filters={filters} 
+          <CardSearchAndFilters
+            filters={filters}
             onFiltersChange={setFilters}
             sortBy={sortBy}
             sortDirection={sortDirection}
             onSortChange={handleSortChange}
           />
         </div>
-        
-        {/* 4. Contenedor de cartas (ÚNICA PARTE CON SCROLL) */}
+
         <div className="flex-1 overflow-y-auto pr-2">
-          <CardGrid cards={processedCards} selectedCard={selectedCard} onCardSelect={setSelectedCard} />
-          
-          {/* Elemento que se observará para cargar más cartas */}
+          <CardGrid
+            cards={processedCards}
+            selectedCard={selectedCard}
+            onCardSelect={handleCardSelect}
+            onCardHover={handleCardHover}
+          />
+
           <div ref={loaderRef} className="flex justify-center items-center py-8">
             {isLoading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-            {!hasMore && cards.length > 0 && <p className="text-muted-foreground">Has llegado al final.</p>}
+            {!hasMore && cards.length > 0 && (
+              <p className="text-muted-foreground">Has llegado al final.</p>
+            )}
           </div>
         </div>
       </div>
